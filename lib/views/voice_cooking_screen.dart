@@ -128,8 +128,10 @@ class _VoiceCookingScreenState extends State<VoiceCookingScreen> {
           _processVoiceCommand(result.recognizedWords);
         }
       },
-      localeId: 'tr_TR',
-      pauseFor: const Duration(seconds: 2),
+      listenOptions: stt.SpeechListenOptions(
+        localeId: 'tr_TR',
+        pauseFor: const Duration(seconds: 2),
+      ),
     );
   }
 
