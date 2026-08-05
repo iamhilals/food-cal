@@ -90,7 +90,7 @@ class IngredientProvider with ChangeNotifier {
         final newIng = Ingredient(
           id: trimmedName.toLowerCase().replaceAll(RegExp(r'\s+'), '_'),
           name: capitalizedName,
-          category: 'Özel Eklenenler',
+          category: _determineCategory(capitalizedName),
           isSelected: true,
           isCustom: true,
         );
@@ -135,7 +135,7 @@ class IngredientProvider with ChangeNotifier {
           Ingredient(
             id: trimmedName.toLowerCase().replaceAll(RegExp(r'\s+'), '_'),
             name: capitalizedName,
-            category: 'Özel Eklenenler',
+            category: _determineCategory(capitalizedName),
             isSelected: true,
             isCustom: true,
           ),
@@ -175,5 +175,61 @@ class IngredientProvider with ChangeNotifier {
   void clearSuggestions() {
     _suggestions = [];
     notifyListeners();
+  }
+
+  /// Classifies custom ingredients into the closest category based on key phrases.
+  String _determineCategory(String name) {
+    final lowerName = name.toLowerCase();
+
+    // 1. Sebzeler (Vegetables & Fruits)
+    final vegKeywords = [
+      'domates', 'patates', 'biber', 'havuç', 'ispanak', 'patlıcan', 'kabak', 
+      'sarımsak', 'soğan', 'marul', 'salatalık', 'maydanoz', 'lahana', 'pırasa',
+      'kereviz', 'karnabahar', 'brokoli', 'enginar', 'bezelye', 'taze fasulye',
+      'sebze', 'meyve', 'elma', 'armut', 'muz', 'çilek', 'portakal', 'limon',
+      'tomato', 'potato', 'pepper', 'carrot', 'spinach', 'eggplant', 'zucchini',
+      'garlic', 'onion', 'lettuce', 'cucumber', 'parsley', 'cabbage', 'leek',
+      'celery', 'cauliflower', 'broccoli', 'artichoke', 'peas', 'vegetable', 'fruit'
+    ];
+
+    // 2. Bakliyatlar (Legumes, grains)
+    final legumeKeywords = [
+      'mercimek', 'nohut', 'fasulye', 'pirinç', 'bulgur', 'maş', 'kuru fasulye',
+      'bezelye', 'barbunya', 'bakla', 'yulaf', 'arpa', 'buğday', 'karabuğday',
+      'kinoa', 'mısır', 'bakliyat', 'tahıl',
+      'lentil', 'chickpea', 'bean', 'rice', 'bulgur', 'oat', 'barley', 'wheat',
+      'buckwheat', 'quinoa', 'corn', 'legume', 'grain'
+    ];
+
+    // 3. Et & Balık Ürünleri (Meat & Fish & Poultry)
+    final meatKeywords = [
+      'tavuk', 'kıyma', 'et', 'kuşbaşı', 'balık', 'ton', 'jambon', 'sosis', 
+      'salam', 'hindi', 'kuzu', 'dana', 'ördek', 'somon', 'karides', 'midye',
+      'sucuk', 'kavurma', 'meat', 'chicken', 'beef', 'fish', 'tuna', 'ham', 
+      'sausage', 'salami', 'turkey', 'lamb', 'salmon', 'shrimp', 'mussel'
+    ];
+
+    // 4. Süt Ürünleri (Dairy)
+    final dairyKeywords = [
+      'süt', 'yoğurt', 'peynir', 'tereyağı', 'krema', 'kaymak', 'kaşar', 'lor',
+      'süzme', 'kefir', 'dairy', 'milk', 'cheese', 'yogurt', 'butter', 'cream'
+    ];
+
+    // Check matches
+    for (var kw in vegKeywords) {
+      if (lowerName.contains(kw)) return 'Sebzeler';
+    }
+    for (var kw in legumeKeywords) {
+      if (lowerName.contains(kw)) return 'Bakliyatlar';
+    }
+    for (var kw in meatKeywords) {
+      if (lowerName.contains(kw)) return 'Et & Balık Ürünleri';
+    }
+    for (var kw in dairyKeywords) {
+      if (lowerName.contains(kw)) return 'Süt Ürünleri';
+    }
+
+    // Default fallback category
+    return 'Diğer';
   }
 }
