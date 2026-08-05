@@ -243,4 +243,128 @@ Kurallar:
     }
     return productName; // fallback
   }
+
+  /// HTML temizleme yardimcisi (Script, style ve tagleri temizler)
+  String _extractTextFromHtml(String html) {
+    var text = html;
+    text = text.replaceAll(RegExp(r'<script[^>]*>[\s\S]*?<\/script>', caseSensitive: false), ' ');
+    text = text.replaceAll(RegExp(r'<style[^>]*>[\s\S]*?<\/style>', caseSensitive: false), ' ');
+    text = text.replaceAll(RegExp(r'<[^>]*>'), ' ');
+    text = text.replaceAll(RegExp(r'\s+'), ' ');
+    return text.trim();
+  }
+
+  /// URL uzerinden tarifi ceker (Extract), temizler, Gemini ile yapilandirir (Transform) ve Recipe nesnesi doner.
+  Future<Recipe> importRecipeFromUrl({
+    required String url,
+    required String apiKey,
+  }) async {
+    if (apiKey.isEmpty) {
+      throw Exception('Gemini API Anahtarı eksik. Lütfen ayarlardan bir API anahtarı ekleyin.');
+    }
+
+    if (url.isEmpty || !Uri.parse(url).isAbsolute) {
+      throw Exception('Lütfen geçerli bir internet bağlantısı girin.');
+    }
+
+    // 1. EXTRACT (Veri Çekme)
+    String pageHtml;
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        pageHtml = response.body;
+      } else {
+        throw Exception('Sayfa yüklenemedi (HTTP ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Web sayfası çekilirken hata oluştu: $e');
+    }
+
+    final cleanedText = _extractTextFromHtml(pageHtml);
+    final truncatedText = cleanedText.length > 12000 ? cleanedText.substring(0, 12000) : cleanedText;
+
+    // 2. TRANSFORM (Dönüştürme)
+    final List<String> modelCandidates = [
+      'gemini-3.5-flash',
+      'gemini-3.6-flash',
+    ];
+
+    Exception? lastException;
+
+    for (var model in modelCandidates) {
+      try {
+        final apiUri = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
+        
+        final prompt = '''
+Sana ham ve kazınmış bir web sayfasının metin içeriği verilecek. Bu metinden yemek tarifini analiz et ve aşağıdaki bilgileri Türkçe olarak çıkartarak bir JSON yapısı oluştur.
+
+Yemek Tarifi Metni:
+"""
+$truncatedText
+"""
+
+Kurallar:
+1. "recipe_name" alanına yemeğin adını yaz.
+2. "prep_time" alanına hazırlama ve pişirme süresini yaz (Örn: "45 dakika").
+3. "steps" listesine tarifin yapılış adımlarını sırasıyla ekle.
+4. Tarifin porsiyon bazlı yaklaşık besin değerlerini hesapla (Kalori kcal, Protein g, Yağ g, Karbonhidrat g). Eğer metinde yazmıyorsa malzemelere göre şef bilgisiyle tahmin et.
+5. "is_sufficient" alanını true yap.
+6. "missing_ingredients" listesini boş bırak [].
+7. Tarif için eğlenceli ve samimi bir şef yorumu ("chef_comment") yaz.
+8. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+
+{
+  "recipe_name": "Tarif Adı",
+  "prep_time": "30 dakika",
+  "steps": [
+    "Adım 1: ...",
+    "Adım 2: ..."
+  ],
+  "calories": 350.0,
+  "protein": 15.0,
+  "fat": 10.0,
+  "carbohydrates": 45.0,
+  "is_sufficient": true,
+  "missing_ingredients": [],
+  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu"
+}
+''';
+
+        final response = await http.post(
+          apiUri,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'contents': [
+              {
+                'parts': [{'text': prompt}]
+              }
+            ]
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final candidates = data['candidates'] as List?;
+          if (candidates != null && candidates.isNotEmpty) {
+            final text = candidates[0]['content']['parts'][0]['text'] as String?;
+            if (text != null) {
+              final cleaned = _cleanResponseText(text);
+              final decoded = json.decode(cleaned);
+              return Recipe.fromJson(decoded);
+            }
+          }
+        } else {
+          final errorJson = json.decode(response.body);
+          final errorMessage = errorJson['error']?['message'] ?? 'API Hatası';
+          debugPrint('Model $model failed with status ${response.statusCode}: $errorMessage');
+          lastException = Exception('Gemini API Hatası (${response.statusCode}): $errorMessage');
+        }
+      } catch (e) {
+        debugPrint('Model $model threw exception: $e');
+        lastException = Exception('Tarif dönüştürülürken hata oluştu: $e');
+      }
+    }
+
+    throw lastException ?? Exception('Tarif dönüştürme işlemi başarısız oldu.');
+  }
 }

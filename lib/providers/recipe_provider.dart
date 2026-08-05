@@ -213,4 +213,30 @@ class RecipeProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  Future<void> importRecipeFromUrl(String url) async {
+    _status = RecipeStatus.loading;
+    _error = null;
+    _recipe = null;
+    notifyListeners();
+
+    try {
+      final importedRecipe = await _generatorService.importRecipeFromUrl(
+        url: url,
+        apiKey: _apiKey,
+      );
+      _recipe = importedRecipe;
+      _status = RecipeStatus.success;
+
+      // Add to history
+      _history.insert(0, importedRecipe);
+      await _saveHistoryToPrefs();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _status = RecipeStatus.error;
+      notifyListeners();
+      rethrow;
+    }
+  }
 }
