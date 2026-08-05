@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Theme Color Palette - Remapped to Premium Light Mode
-  static const Color darkBg = Color(0xFFF8FAFC); // Slate 50 (Background)
-  static const Color darkCard = Colors.white; // White (Cards)
-  static const Color primaryTeal = Color(0xFF0D9488); // Teal 600 (Primary Brand)
-  static const Color secondaryIndigo = Color(0xFF4F46E5); // Indigo 600 (Secondary Brand)
-  static const Color accentEmerald = Color(0xFF10B981); // Emerald 500 (Success)
-  static const Color textPrimary = Color(0xFF0F172A); // Slate 900 (Primary text)
-  static const Color textSecondary = Color(0xFF475569); // Slate 600 (Secondary text)
-  static const Color errorRed = Color(0xFFE11D48); // Rose 600 (Errors)
-  static const Color borderSlate = Color(0xFFE2E8F0); // Slate 200 (Borders)
+  // Warm Culinary Cafe Palette
+  static const Color darkBg = Color(0xFFFAF7F2); // Warm Oat / Cream Background
+  static const Color darkCard = Colors.white; // Pure White Card Background
+  static const Color primaryTeal = Color(0xFFD97706); // Warm Amber / Terracotta Accent
+  static const Color secondaryIndigo = Color(0xFF2E5A44); // Deep Forest / Sage Green
+  static const Color accentEmerald = Color(0xFF16A34A); // Fresh Green (Success)
+  static const Color textPrimary = Color(0xFF2C241E); // Espresso Dark Brown (Typography)
+  static const Color textSecondary = Color(0xFF6E5F54); // Muted Cocoa Brown
+  static const Color errorRed = Color(0xFFDC2626); // Warm Crimson Red (Error)
+  static const Color borderSlate = Color(0xFFEFE8DE); // Warm Sand Border Color
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -26,11 +26,10 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: darkCard,
-        elevation: 2,
-        shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.05),
+        elevation: 0, // Flat premium design
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: borderSlate, width: 1),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: borderSlate, width: 1.5),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -38,17 +37,18 @@ class AppTheme {
         fillColor: Colors.white,
         labelStyle: const TextStyle(color: textSecondary),
         hintStyle: const TextStyle(color: textSecondary),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: borderSlate),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: borderSlate, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: borderSlate),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: borderSlate, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryTeal, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primaryTeal, width: 2),
         ),
       ),
       textTheme: GoogleFonts.outfitTextTheme(
@@ -77,11 +77,10 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.white,
           backgroundColor: primaryTeal,
-          elevation: 1,
-          shadowColor: primaryTeal.withValues(alpha: 0.2),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
             fontSize: 16,
