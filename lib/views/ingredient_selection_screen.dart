@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/ingredient_provider.dart';
@@ -29,6 +31,124 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     _newIngredientController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _detectIngredientsFromPhoto() async {
+    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
+    final ingProvider = Provider.of<IngredientProvider>(context, listen: false);
+
+    if (!recipeProvider.hasApiKey) {
+      showDialog(
+        context: context,
+        builder: (context) => const SettingsDialog(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf tespiti için lütfen önce API anahtarınızı girin.'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
+    }
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded, color: AppTheme.primaryTeal),
+              title: const Text('Fotoğraf Çek'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryTeal),
+              title: const Text('Galeriden Seç'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final picker = ImagePicker();
+      final XFile? file = await picker.pickImage(
+        source: source,
+        imageQuality: 60,
+        maxWidth: 1024,
+      );
+
+      if (file == null) return;
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppTheme.darkCard,
+          content: Row(
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primaryTeal),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Görsel analiz ediliyor...',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final bytes = await file.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      await ingProvider.detectAndAddIngredients(base64Image, recipeProvider.apiKey);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Malzemeler başarıyla tespit edildi ve seçildi!'),
+            backgroundColor: AppTheme.primaryTeal,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppTheme.darkCard,
+            title: const Text('Hata'),
+            content: Text('Malzemeler tespit edilirken bir hata oluştu: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tamam'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _scanBarcode() {
+    // Stub: will implement in the next task
   }
 
   void _onNewIngredientChanged(String text) {
@@ -159,7 +279,21 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                                       provider.setSearchQuery('');
                                     },
                                   )
-                                : null,
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.photo_camera_rounded, color: AppTheme.primaryTeal),
+                                        onPressed: _detectIngredientsFromPhoto,
+                                        tooltip: 'Fotoğraf ile Malzeme Tespiti',
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryTeal),
+                                        onPressed: _scanBarcode,
+                                        tooltip: 'Barkod Tarayıcı',
+                                      ),
+                                    ],
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 12),

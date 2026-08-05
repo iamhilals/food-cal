@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/default_ingredients.dart';
 import '../models/ingredient.dart';
+import '../services/recipe_generator_service.dart';
 
 class IngredientProvider with ChangeNotifier {
   final List<Ingredient> _ingredients = List.from(kInitialIngredients);
@@ -9,11 +10,14 @@ class IngredientProvider with ChangeNotifier {
   String? _validationError;
   List<String> _suggestions = [];
   bool _isLoadingSuggestions = false;
+  final RecipeGeneratorService _generatorService = RecipeGeneratorService();
+  bool _isAnalyzingImage = false;
 
   List<Ingredient> get ingredients => _ingredients;
   String get searchQuery => _searchQuery;
   bool get isValidating => _isValidating;
   String? get validationError => _validationError;
+  bool get isAnalyzingImage => _isAnalyzingImage;
 
   void setSearchQuery(String query) {
     _searchQuery = query;
@@ -216,5 +220,26 @@ class IngredientProvider with ChangeNotifier {
 
     // Default fallback category
     return 'Diğer';
+  }
+
+  Future<void> detectAndAddIngredients(String base64Image, String apiKey) async {
+    _isAnalyzingImage = true;
+    _validationError = null;
+    notifyListeners();
+
+    try {
+      final detectedNames = await _generatorService.detectIngredientsFromImage(
+        base64Image: base64Image,
+        apiKey: apiKey,
+      );
+      addAndSelectIngredients(detectedNames);
+    } catch (e) {
+      debugPrint('Error detecting ingredients: $e');
+      _validationError = e.toString().replaceFirst('Exception: ', '');
+      rethrow;
+    } finally {
+      _isAnalyzingImage = false;
+      notifyListeners();
+    }
   }
 }

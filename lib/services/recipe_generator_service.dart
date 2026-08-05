@@ -135,4 +135,71 @@ Kurallar:
     }
     return cleaned.trim();
   }
+
+  /// Analyzes a base64-encoded image and returns a list of detected food ingredients.
+  Future<List<String>> detectIngredientsFromImage({
+    required String base64Image,
+    required String apiKey,
+  }) async {
+    if (apiKey.isEmpty) {
+      throw Exception('Gemini API Anahtarı eksik. Lütfen ayarlardan bir API anahtarı ekleyin.');
+    }
+
+    final List<String> modelCandidates = [
+      'gemini-3.5-flash',
+      'gemini-3.6-flash',
+    ];
+
+    Exception? lastException;
+
+    for (var model in modelCandidates) {
+      try {
+        final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'contents': [
+              {
+                'parts': [
+                  {
+                    'text': 'Bu görseldeki veya fotoğraftaki yiyecek/yemek malzemelerini tespit et ve sadece Türkçe isimlerini ham bir JSON listesi olarak döndür. Örnek çıktı formatı: ["domates", "biber", "yumurta"]. Yanıtta markdown kod bloğu (```json gibi) veya açıklama bulunmamalıdır, sadece ham JSON listesi döndür.'
+                  },
+                  {
+                    'inlineData': {
+                      'mimeType': 'image/jpeg',
+                      'data': base64Image
+                    }
+                  }
+                ]
+              }
+            ]
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final candidates = data['candidates'] as List?;
+          if (candidates != null && candidates.isNotEmpty) {
+            final text = candidates[0]['content']['parts'][0]['text'] as String?;
+            if (text != null) {
+              final cleaned = _cleanResponseText(text);
+              final List decoded = json.decode(cleaned);
+              return decoded.map((e) => e.toString().trim()).toList();
+            }
+          }
+        } else {
+          final errorJson = json.decode(response.body);
+          final errorMessage = errorJson['error']?['message'] ?? 'API Hatası';
+          debugPrint('Multimodal model $model failed with status ${response.statusCode}: $errorMessage');
+          lastException = Exception('Gemini API Hatası (${response.statusCode}): $errorMessage');
+        }
+      } catch (e) {
+        debugPrint('Multimodal model $model threw exception: $e');
+        lastException = Exception('Fotoğraf analiz edilirken sorun oluştu: $e');
+      }
+    }
+
+    throw lastException ?? Exception('Tüm yapay zeka modelleri görsel analizinde başarısız oldu.');
+  }
 }
