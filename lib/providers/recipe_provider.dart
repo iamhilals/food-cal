@@ -38,6 +38,7 @@ class RecipeProvider with ChangeNotifier {
         final List decoded = json.decode(historyJson);
         _history = decoded.map((item) => Recipe.fromJson(item)).toList();
       }
+      await _loadWeeklyPlanFromPrefs();
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading preferences: $e');
@@ -238,5 +239,96 @@ class RecipeProvider with ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  // --- WEEKLY MEAL PLANNER ---
+  final Map<String, Recipe?> _weeklyPlan = {
+    'Pazartesi': null,
+    'Salı': null,
+    'Çarşamba': null,
+    'Perşembe': null,
+    'Cuma': null,
+    'Cumartesi': null,
+    'Pazar': null,
+  };
+
+  Map<String, Recipe?> get weeklyPlan => _weeklyPlan;
+
+  Future<void> addRecipeToWeeklyPlan(String day, Recipe recipe) async {
+    if (_weeklyPlan.containsKey(day)) {
+      _weeklyPlan[day] = recipe;
+      await _saveWeeklyPlanToPrefs();
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeRecipeFromWeeklyPlan(String day) async {
+    if (_weeklyPlan.containsKey(day)) {
+      _weeklyPlan[day] = null;
+      await _saveWeeklyPlanToPrefs();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveWeeklyPlanToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final Map<String, String> jsonMap = {};
+      _weeklyPlan.forEach((key, val) {
+        if (val != null) {
+          jsonMap[key] = json.encode(val.toJson());
+        }
+      });
+      await prefs.setString('weekly_plan', json.encode(jsonMap));
+    } catch (e) {
+      debugPrint('Error saving weekly plan: $e');
+    }
+  }
+
+  Future<void> _loadWeeklyPlanFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('weekly_plan');
+      if (jsonStr != null) {
+        final Map<String, dynamic> decoded = json.decode(jsonStr);
+        decoded.forEach((key, val) {
+          if (_weeklyPlan.containsKey(key)) {
+            _weeklyPlan[key] = Recipe.fromJson(json.decode(val));
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading weekly plan: $e');
+    }
+  }
+
+  Future<void> addWeeklyIngredientsToShoppingList() async {
+    final List<String> itemsToAdd = [];
+    
+    for (final recipe in _weeklyPlan.values) {
+      if (recipe == null) continue;
+      
+      if (recipe.ingredients.isNotEmpty) {
+        for (final ing in recipe.ingredients) {
+          final cleaned = _cleanIngredientName(ing);
+          if (cleaned.isNotEmpty) {
+            itemsToAdd.add(cleaned);
+          }
+        }
+      }
+    }
+    
+    if (itemsToAdd.isNotEmpty) {
+      await addIngredientsToShoppingList(itemsToAdd);
+    }
+  }
+
+  String _cleanIngredientName(String raw) {
+    var clean = raw.toLowerCase().trim();
+    // Remove numbers and common units (Turkish and numeric formatting)
+    clean = clean.replaceAll(RegExp(r'^\d+([.,/]\d+)?\s*(adet|su bardağı|yemek kaşığı|tatlı kaşığı|çay kaşığı|g|kg|ml|l|paket|diş|demet|tane|su bardagi|yemek kasigi|tatli kasigi|cay kasigi)?\s*'), '');
+    clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (clean.isEmpty) return raw;
+    return clean[0].toUpperCase() + clean.substring(1);
   }
 }

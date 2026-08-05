@@ -223,6 +223,164 @@ class RecipeHistoryScreen extends StatelessWidget {
             ),
           ),
 
+          // Haftalık Menü Planı Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Card(
+              color: AppTheme.darkCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppTheme.borderSlate, width: 1.2),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Haftalık Yemek Planım 📅',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                        ),
+                        if (recipeProvider.weeklyPlan.values.any((r) => r != null))
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.primaryTeal,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 16),
+                            label: const Text('Malzemeleri Sepete Ekle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              await recipeProvider.addWeeklyIngredientsToShoppingList();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Haftalık plandaki malzemeler akıllıca birleştirilerek Marketim listesine eklendi!'),
+                                    backgroundColor: AppTheme.primaryTeal,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: recipeProvider.weeklyPlan.entries.map((entry) {
+                          final day = entry.key;
+                          final recipe = entry.value;
+                          final shortDay = day.substring(0, 3);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Stack(
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    if (recipe != null) {
+                                      recipeProvider.setRecipe(recipe);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const RecipeDetailScreen()),
+                                      );
+                                    } else {
+                                      _showSelectRecipeForDayDialog(context, recipeProvider, day);
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: 75,
+                                    height: 75,
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                    decoration: BoxDecoration(
+                                      color: recipe != null 
+                                          ? AppTheme.primaryTeal.withValues(alpha: 0.08)
+                                          : AppTheme.darkBg,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: recipe != null ? AppTheme.primaryTeal : AppTheme.borderSlate,
+                                        width: recipe != null ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          shortDay,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: recipe != null ? AppTheme.primaryTeal : AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        if (recipe == null)
+                                          const Icon(
+                                            Icons.add_circle_outline_rounded,
+                                            color: AppTheme.textSecondary,
+                                            size: 20,
+                                          )
+                                        else
+                                          Expanded(
+                                            child: Center(
+                                              child: Text(
+                                                recipe.name,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.textPrimary,
+                                                  height: 1.2,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (recipe != null)
+                                  Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        recipeProvider.removeRecipeFromWeeklyPlan(day);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: const BoxDecoration(
+                                          color: AppTheme.errorRed,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.white,
+                                          size: 8,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           // History list
           Expanded(
             child: history.isEmpty
@@ -356,6 +514,55 @@ class RecipeHistoryScreen extends StatelessWidget {
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSelectRecipeForDayDialog(BuildContext context, RecipeProvider recipeProvider, String day) {
+    final history = recipeProvider.history;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSlate, width: 1.2),
+        ),
+        title: Text('$day İçin Tarif Seç'),
+        content: history.isEmpty
+            ? const Text(
+                'Defterinizde henüz kayıtlı tarif bulunmuyor. Önce dolabınızdan tarif üretin veya link ile tarif ekleyin!',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              )
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final recipe = history[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.restaurant_menu_rounded, color: AppTheme.primaryTeal),
+                      title: Text(
+                        recipe.name,
+                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                      ),
+                      onTap: () {
+                        recipeProvider.addRecipeToWeeklyPlan(day, recipe);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat', style: TextStyle(color: AppTheme.textSecondary)),
           ),
         ],
       ),
