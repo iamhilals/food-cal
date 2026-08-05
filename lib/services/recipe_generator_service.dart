@@ -106,7 +106,8 @@ Kurallar:
 3. Tarifin malzemelerini net miktarlarıyla birlikte "ingredients" listesine ekle (Örn: "2 adet yumurta", "1.5 su bardağı süt", "100g un").
 4. Tarifte kullanılan malzemelerin porsiyon miktarlarına göre toplam besin değerlerini (Kalori kcal, Protein g, Yağ g, Karbonhidrat g) hesapla.
 5. Tarif veya kullanılan malzemeler hakkında eğlenceli, esprili, iştah kabartan ve motive edici bir şef yorumu ("chef_comment") yaz. (Örn: "Mercimeğin patatesle olan muhteşem aşkı! Şef der ki: Yanına bol köpüklü bir ayran ve taze naneli salata çok yakışır!")
-6. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+6. Tarifte kullanılmayan veya artan gıdaları korumaya ve israfı önlemeye yönelik pratik bir "Sıfır Atık" mutfak tüyosu ("waste_tip") yaz.
+7. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
 
 {
   "recipe_name": "Tarif Adı",
@@ -126,7 +127,8 @@ Kurallar:
   "carbohydrates": 45.0,
   "is_sufficient": true veya false,
   "missing_ingredients": ["Malzeme 1", "Malzeme 2"],
-  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu"
+  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu",
+  "waste_tip": "Artan yarım soğanı streç film yerine balmumu kumaşına sararak dolapta 1 hafta taze saklayabilirsin!"
 }
 ''';
   }
@@ -318,7 +320,8 @@ Kurallar:
 6. "is_sufficient" alanını true yap.
 7. "missing_ingredients" listesini boş bırak [].
 8. Tarif için eğlenceli ve samimi bir şef yorumu ("chef_comment") yaz.
-9. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+9. Tarifte kullanılmayan veya artan gıdaları korumaya ve israfı önlemeye yönelik pratik bir "Sıfır Atık" mutfak tüyosu ("waste_tip") yaz.
+10. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
 
 {
   "recipe_name": "Tarif Adı",
@@ -337,7 +340,8 @@ Kurallar:
   "carbohydrates": 45.0,
   "is_sufficient": true,
   "missing_ingredients": [],
-  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu"
+  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu",
+  "waste_tip": "Gıda israfını önleyecek pratik şef tüyosu"
 }
 ''';
 

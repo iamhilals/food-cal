@@ -10,6 +10,7 @@ class Recipe {
   final bool isSufficient;
   final List<String> missingIngredients;
   final String chefComment; // AI Şef'in eğlenceli yorumu ve mutfak notu
+  final String wasteTip; // Mutfakta gıda israfını önlemek için pratik atık önleme tüyosu
 
   Recipe({
     required this.name,
@@ -23,6 +24,7 @@ class Recipe {
     required this.isSufficient,
     required this.missingIngredients,
     required this.chefComment,
+    required this.wasteTip,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +40,7 @@ class Recipe {
       'is_sufficient': isSufficient,
       'missing_ingredients': missingIngredients,
       'chef_comment': chefComment,
+      'waste_tip': wasteTip,
     };
   }
 
@@ -54,6 +57,7 @@ class Recipe {
       isSufficient: json['is_sufficient'] as bool? ?? true,
       missingIngredients: (json['missing_ingredients'] as List?)?.map((e) => e.toString()).toList() ?? [],
       chefComment: json['chef_comment'] as String? ?? 'Şefimiz bu malzemeleri bir araya getirdiğiniz için mutlu!',
+      wasteTip: json['waste_tip'] as String? ?? 'Seçtiğiniz malzemeleri israf etmeden, taze şekilde saklamaya özen gösterin.',
     );
   }
 }
