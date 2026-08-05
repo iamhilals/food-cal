@@ -67,10 +67,103 @@ class _SettingsManualAddDialogState extends State<_SettingsManualAddDialog> {
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final Set<String> _purchasedItems = {};
 
+  String _categorizeItem(String item) {
+    final lower = item.toLowerCase();
+    
+    // Manav
+    if (lower.contains('domates') ||
+        lower.contains('biber') ||
+        lower.contains('soğan') ||
+        lower.contains('sarımsak') ||
+        lower.contains('patates') ||
+        lower.contains('maydanoz') ||
+        lower.contains('limon') ||
+        lower.contains('havuç') ||
+        lower.contains('ıspanak') ||
+        lower.contains('salatalık') ||
+        lower.contains('marul') ||
+        lower.contains('dereotu') ||
+        lower.contains('nane') ||
+        lower.contains('patlıcan') ||
+        lower.contains('kabak') ||
+        lower.contains('elma') ||
+        lower.contains('portakal') ||
+        lower.contains('muz') ||
+        lower.contains('çilek') ||
+        lower.contains('sebze') ||
+        lower.contains('meyve')) {
+      return 'Manav 🍎';
+    }
+    
+    // Süt Ürünleri
+    if (lower.contains('süt') ||
+        lower.contains('peynir') ||
+        lower.contains('tereyağı') ||
+        lower.contains('yoğurt') ||
+        lower.contains('krema') ||
+        lower.contains('kaşar') ||
+        lower.contains('lor') ||
+        lower.contains('kaymak') ||
+        lower.contains('ayran')) {
+      return 'Süt Ürünleri 🥛';
+    }
+    
+    // Kasap & Şarküteri
+    if (lower.contains('tavuk') ||
+        lower.contains('et') ||
+        lower.contains('kıyma') ||
+        lower.contains('balık') ||
+        lower.contains('salam') ||
+        lower.contains('sosis') ||
+        lower.contains('pastırma') ||
+        lower.contains('hindi') ||
+        lower.contains('bonfile') ||
+        lower.contains('pirzola') ||
+        lower.contains('kavurma') ||
+        lower.contains('köfte')) {
+      return 'Kasap & Şarküteri 🥩';
+    }
+    
+    // Kuru Gıda & Baharat
+    if (lower.contains('un') ||
+        lower.contains('şeker') ||
+        lower.contains('tuz') ||
+        lower.contains('yağ') ||
+        lower.contains('pirinç') ||
+        lower.contains('makarna') ||
+        lower.contains('salça') ||
+        lower.contains('pul biber') ||
+        lower.contains('karabiber') ||
+        lower.contains('kekik') ||
+        lower.contains('kimyon') ||
+        lower.contains('karbonat') ||
+        lower.contains('kabartma') ||
+        lower.contains('sirke') ||
+        lower.contains('bulgur') ||
+        lower.contains('mercimek') ||
+        lower.contains('nohut') ||
+        lower.contains('fasulye') ||
+        lower.contains('sos')) {
+      return 'Kuru Gıda & Baharat 🌾';
+    }
+    
+    return 'Diğer Malzemeler 🛒';
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipeProvider = Provider.of<RecipeProvider>(context);
     final shoppingList = recipeProvider.shoppingList;
+
+    // Grouping shopping list
+    final Map<String, List<String>> categorizedItems = {};
+    for (final item in shoppingList) {
+      final category = _categorizeItem(item);
+      categorizedItems.putIfAbsent(category, () => []).add(item);
+    }
+    
+    // Sort categories consistently
+    final sortedCategories = categorizedItems.keys.toList()..sort();
 
     return Scaffold(
       appBar: AppBar(
@@ -174,45 +267,85 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: shoppingList.length,
-              itemBuilder: (context, index) {
-                final item = shoppingList[index];
-                final isPurchased = _purchasedItems.contains(item.toLowerCase());
+              itemCount: sortedCategories.length,
+              itemBuilder: (context, catIndex) {
+                final category = sortedCategories[catIndex];
+                final items = categorizedItems[category] ?? [];
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: CheckboxListTile(
-                    value: isPurchased,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == true) {
-                          _purchasedItems.add(item.toLowerCase());
-                        } else {
-                          _purchasedItems.remove(item.toLowerCase());
-                        }
-                      });
-                    },
-                    title: Text(
-                      item,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        decoration: isPurchased ? TextDecoration.lineThrough : null,
-                        color: isPurchased ? AppTheme.textSecondary : AppTheme.textPrimary,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category Header
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16, bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryTeal.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.primaryTeal.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              category,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryTeal,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: AppTheme.borderSlate,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    activeColor: AppTheme.primaryTeal,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    secondary: IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed),
-                      onPressed: () {
-                        recipeProvider.removeIngredientFromShoppingList(item);
-                        setState(() {
-                          _purchasedItems.remove(item.toLowerCase());
-                        });
-                      },
-                    ),
-                  ),
+                    // Category items list
+                    ...items.map((item) {
+                      final isPurchased = _purchasedItems.contains(item.toLowerCase());
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: CheckboxListTile(
+                          value: isPurchased,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _purchasedItems.add(item.toLowerCase());
+                              } else {
+                                _purchasedItems.remove(item.toLowerCase());
+                              }
+                            });
+                          },
+                          title: Text(
+                            item,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              decoration: isPurchased ? TextDecoration.lineThrough : null,
+                              color: isPurchased ? AppTheme.textSecondary : AppTheme.textPrimary,
+                            ),
+                          ),
+                          activeColor: AppTheme.primaryTeal,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          secondary: IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed),
+                            onPressed: () {
+                              recipeProvider.removeIngredientFromShoppingList(item);
+                              setState(() {
+                                _purchasedItems.remove(item.toLowerCase());
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                 );
               },
             ),
