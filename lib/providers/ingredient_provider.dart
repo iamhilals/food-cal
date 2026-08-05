@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../core/constants/default_ingredients.dart';
 import '../models/ingredient.dart';
 import '../services/recipe_generator_service.dart';
@@ -241,5 +243,36 @@ class IngredientProvider with ChangeNotifier {
       _isAnalyzingImage = false;
       notifyListeners();
     }
+  }
+
+  Future<String?> resolveBarcode(String barcode, String apiKey) async {
+    _isValidating = true;
+    _validationError = null;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse('https://tr.openfoodfacts.org/api/v2/product/$barcode.json');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 1) {
+          final product = data['product'];
+          final name = product['product_name_tr'] ?? product['product_name'] ?? product['product_name_en'] ?? '';
+          if (name.isNotEmpty) {
+            final simplified = await _generatorService.simplifyProductName(
+              productName: name,
+              apiKey: apiKey,
+            );
+            return simplified;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error querying Open Food Facts: $e');
+    } finally {
+      _isValidating = false;
+      notifyListeners();
+    }
+    return null;
   }
 }

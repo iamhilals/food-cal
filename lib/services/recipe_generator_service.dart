@@ -202,4 +202,45 @@ Kurallar:
 
     throw lastException ?? Exception('Tüm yapay zeka modelleri görsel analizinde başarısız oldu.');
   }
+
+  /// Simplifies a commercial product name into a general ingredient name using Gemini.
+  Future<String> simplifyProductName({
+    required String productName,
+    required String apiKey,
+  }) async {
+    if (apiKey.isEmpty || productName.isEmpty) return productName;
+
+    final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'contents': [
+            {
+              'parts': [
+                {
+                  'text': 'Ticari gıda ürünü ismi: "$productName". Bu gıdanın genel, sade ve markasız Türkçe karşılığını tek veya en fazla iki kelimeyle döndür. Örn: "Pınar Süzme Süzme Peynir 500g" -> "Peynir", "Filiz Burgu Makarna" -> "Makarna", "Tat Domates Salçası 830g" -> "Salça". Yanıt sadece sade isimden oluşmalı, başka hiçbir açıklama veya markdown içermemelidir.'
+                }
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final candidates = data['candidates'] as List?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final text = candidates[0]['content']['parts'][0]['text'] as String?;
+          if (text != null) {
+            return text.trim();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error simplifying product name: $e');
+    }
+    return productName; // fallback
+  }
 }

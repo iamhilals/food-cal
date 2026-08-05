@@ -9,6 +9,7 @@ import '../providers/ingredient_provider.dart';
 import '../providers/recipe_provider.dart';
 import 'recipe_detail_screen.dart';
 import 'widgets/settings_dialog.dart';
+import 'barcode_scanner_screen.dart';
 
 class IngredientSelectionScreen extends StatefulWidget {
   const IngredientSelectionScreen({super.key});
@@ -147,8 +148,121 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     }
   }
 
-  void _scanBarcode() {
-    // Stub: will implement in the next task
+  Future<void> _scanBarcode() async {
+    final barcode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+    );
+
+    if (barcode == null || barcode.isEmpty) return;
+
+    if (!mounted) return;
+
+    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
+    final ingProvider = Provider.of<IngredientProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        content: Row(
+          children: [
+            const CircularProgressIndicator(color: AppTheme.primaryTeal),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                'Barkod sorgulanıyor...',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final String apiKey = recipeProvider.apiKey;
+      final productName = await ingProvider.resolveBarcode(barcode, apiKey);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (productName != null && productName.isNotEmpty) {
+        ingProvider.addAndSelectIngredients([productName]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"$productName" başarıyla eklendi ve seçildi!'),
+            backgroundColor: AppTheme.primaryTeal,
+          ),
+        );
+      } else {
+        _showManualProductAddDialog(barcode);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Barkod sorgulanırken hata oluştu: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showManualProductAddDialog(String barcode) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSlate),
+        ),
+        title: const Text('Ürün Bulunamadı'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Girdiğiniz barkod Open Food Facts üzerinde bulunamadı. Lütfen ürün ismini kendiniz girin:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'Örn: Krem Peynir',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                Provider.of<IngredientProvider>(context, listen: false).addAndSelectIngredients([text]);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"$text" başarıyla eklendi ve seçildi!'),
+                    backgroundColor: AppTheme.primaryTeal,
+                  ),
+                );
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Ekle'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onNewIngredientChanged(String text) {
