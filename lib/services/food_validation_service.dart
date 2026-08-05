@@ -32,4 +32,38 @@ class FoodValidationService {
       return false;
     }
   }
+
+  /// Fetches product suggestions based on a partial [query].
+  /// Returns a list of unique product names.
+  Future<List<String>> getSuggestions(String query) async {
+    final searchTerms = query.trim();
+    if (searchTerms.length < 3) return [];
+
+    try {
+      final uri = Uri.parse('$_baseUrl?search_terms=${Uri.encodeComponent(searchTerms)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name');
+      final response = await CustomHttpClient.get(uri);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List? products = data['products'] as List?;
+        if (products != null) {
+          final List<String> suggestions = [];
+          for (var p in products) {
+            final name = p['product_name'] as String?;
+            if (name != null && name.trim().isNotEmpty) {
+              final cleanName = name.trim();
+              if (!suggestions.any((s) => s.toLowerCase() == cleanName.toLowerCase())) {
+                suggestions.add(cleanName);
+              }
+            }
+          }
+          return suggestions;
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting suggestions: $e');
+      return [];
+    }
+  }
 }

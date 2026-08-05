@@ -10,6 +10,8 @@ class IngredientProvider with ChangeNotifier {
   String _searchQuery = '';
   bool _isValidating = false;
   String? _validationError;
+  List<String> _suggestions = [];
+  bool _isLoadingSuggestions = false;
 
   List<Ingredient> get ingredients => _ingredients;
   String get searchQuery => _searchQuery;
@@ -140,6 +142,38 @@ class IngredientProvider with ChangeNotifier {
         );
       }
     }
+    notifyListeners();
+  }
+
+  List<String> get suggestions => _suggestions;
+  bool get isLoadingSuggestions => _isLoadingSuggestions;
+
+  /// Fetches suggestions as the user types.
+  Future<void> fetchSuggestions(String query) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.length < 3) {
+      _suggestions = [];
+      notifyListeners();
+      return;
+    }
+
+    _isLoadingSuggestions = true;
+    notifyListeners();
+
+    try {
+      final results = await _validationService.getSuggestions(trimmedQuery);
+      _suggestions = results;
+    } catch (e) {
+      debugPrint('Error fetching suggestions in provider: $e');
+      _suggestions = [];
+    } finally {
+      _isLoadingSuggestions = false;
+      notifyListeners();
+    }
+  }
+
+  void clearSuggestions() {
+    _suggestions = [];
     notifyListeners();
   }
 }

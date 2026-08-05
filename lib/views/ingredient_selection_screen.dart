@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
@@ -17,12 +18,23 @@ class IngredientSelectionScreen extends StatefulWidget {
 class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _newIngredientController = TextEditingController();
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
     _searchController.dispose();
     _newIngredientController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onNewIngredientChanged(String text) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        Provider.of<IngredientProvider>(context, listen: false).fetchSuggestions(text);
+      }
+    });
   }
 
   void _showSettings() {
@@ -37,6 +49,7 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     if (name.isEmpty) return;
 
     final provider = Provider.of<IngredientProvider>(context, listen: false);
+    provider.clearSuggestions();
     _newIngredientController.clear();
     FocusScope.of(context).unfocus();
 
@@ -153,6 +166,7 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                             Expanded(
                               child: TextField(
                                 controller: _newIngredientController,
+                                onChanged: _onNewIngredientChanged,
                                 decoration: const InputDecoration(
                                   hintText: 'Yeni besin ekle (Örn: Chia Tohumu)',
                                   prefixIcon: Icon(Icons.add_rounded, color: AppTheme.textSecondary),
@@ -174,6 +188,43 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                             ),
                           ],
                         ),
+                        if (provider.isLoadingSuggestions)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryTeal),
+                              ),
+                            ),
+                          )
+                        else if (provider.suggestions.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.darkCard,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.borderSlate),
+                            ),
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: provider.suggestions.length,
+                              itemBuilder: (context, index) {
+                                final suggestion = provider.suggestions[index];
+                                return ListTile(
+                                  title: Text(suggestion),
+                                  leading: const Icon(Icons.search_rounded, size: 18),
+                                  dense: true,
+                                  onTap: () {
+                                    _newIngredientController.text = suggestion;
+                                    provider.clearSuggestions();
+                                  },
+                                );
+                              },
+                            ),
+                          ),
                       ],
                     ),
                   ),
