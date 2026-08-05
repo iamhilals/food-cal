@@ -20,6 +20,8 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
   final TextEditingController _newIngredientController = TextEditingController();
   Timer? _debounceTimer;
   final Set<String> _collapsedCategories = {};
+  final Set<String> _activeCategorySearches = {};
+  final Map<String, String> _categorySearchQueries = {};
 
   @override
   void dispose() {
@@ -285,72 +287,150 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                             itemCount: provider.categories.length,
                             itemBuilder: (context, index) {
                               final category = provider.categories[index];
-                              final categoryIngredients = provider.getIngredientsByCategory(category);
+                              var categoryIngredients = provider.getIngredientsByCategory(category);
+                              
+                              final isSearchActive = _activeCategorySearches.contains(category);
+                              final catQuery = _categorySearchQueries[category];
+                              
+                              if (isSearchActive && catQuery != null && catQuery.trim().isNotEmpty) {
+                                categoryIngredients = categoryIngredients
+                                    .where((ing) => ing.name.toLowerCase().contains(catQuery.trim().toLowerCase()))
+                                    .toList();
+                              }
+
                               final isCollapsed = _collapsedCategories.contains(category);
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        if (isCollapsed) {
-                                          _collapsedCategories.remove(category);
-                                        } else {
-                                          _collapsedCategories.add(category);
-                                        }
-                                      });
-                                    },
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            _getCategoryEmoji(category),
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  color: AppTheme.primaryTeal,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          Icon(
-                                            isCollapsed
-                                                ? Icons.keyboard_arrow_down_rounded
-                                                : Icons.keyboard_arrow_up_rounded,
-                                            color: AppTheme.primaryTeal,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  if (!isCollapsed) ...[
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8.0,
-                                      runSpacing: 8.0,
-                                      children: categoryIngredients.map((ing) {
-                                        return FilterChip(
-                                          label: Text(ing.name),
-                                          selected: ing.isSelected,
-                                          onSelected: (_) => provider.toggleIngredient(ing.id),
-                                          backgroundColor: AppTheme.darkCard,
-                                          selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.2),
-                                          checkmarkColor: AppTheme.primaryTeal,
-                                          labelStyle: TextStyle(
-                                            color: ing.isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
-                                            fontWeight: ing.isSelected ? FontWeight.bold : FontWeight.normal,
-                                          ),
-                                          shape: RoundedRectangleBorder(
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                if (isCollapsed) {
+                                                  _collapsedCategories.remove(category);
+                                                } else {
+                                                  _collapsedCategories.add(category);
+                                                }
+                                              });
+                                            },
                                             borderRadius: BorderRadius.circular(10),
-                                            side: BorderSide(
-                                              color: ing.isSelected ? AppTheme.primaryTeal : AppTheme.borderSlate,
-                                              width: ing.isSelected ? 1.5 : 1.0,
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                              child: Row(
+                                                children: [
+                                                  Text(
+                                                    _getCategoryEmoji(category),
+                                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                          color: AppTheme.primaryTeal,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Icon(
+                                                    isCollapsed
+                                                        ? Icons.keyboard_arrow_down_rounded
+                                                        : Icons.keyboard_arrow_up_rounded,
+                                                    color: AppTheme.primaryTeal,
+                                                    size: 20,
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      }).toList(),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            isSearchActive ? Icons.search_off_rounded : Icons.search_rounded,
+                                            color: AppTheme.primaryTeal,
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              if (isSearchActive) {
+                                                _activeCategorySearches.remove(category);
+                                                _categorySearchQueries.remove(category);
+                                              } else {
+                                                _activeCategorySearches.add(category);
+                                                _collapsedCategories.remove(category); // Expand on search
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  if (isSearchActive) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                      child: TextField(
+                                        style: const TextStyle(fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: '$category içinde ara...',
+                                          prefixIcon: const Icon(Icons.search_rounded, size: 16, color: AppTheme.textSecondary),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          fillColor: AppTheme.darkBg,
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: const BorderSide(color: AppTheme.borderSlate),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: const BorderSide(color: AppTheme.borderSlate),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: const BorderSide(color: AppTheme.primaryTeal),
+                                          ),
+                                        ),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _categorySearchQueries[category] = val;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                  if (!isCollapsed) ...[
+                                    const SizedBox(height: 8),
+                                    categoryIngredients.isEmpty
+                                        ? const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                            child: Text(
+                                              'Aramayla eşleşen malzeme bulunamadı.',
+                                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontStyle: FontStyle.italic),
+                                            ),
+                                          )
+                                        : Wrap(
+                                            spacing: 8.0,
+                                            runSpacing: 8.0,
+                                            children: categoryIngredients.map((ing) {
+                                              return FilterChip(
+                                                label: Text(ing.name),
+                                                selected: ing.isSelected,
+                                                onSelected: (_) => provider.toggleIngredient(ing.id),
+                                                backgroundColor: AppTheme.darkCard,
+                                                selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.2),
+                                                checkmarkColor: AppTheme.primaryTeal,
+                                                labelStyle: TextStyle(
+                                                  color: ing.isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                                  fontWeight: ing.isSelected ? FontWeight.bold : FontWeight.normal,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  side: BorderSide(
+                                                    color: ing.isSelected ? AppTheme.primaryTeal : AppTheme.borderSlate,
+                                                    width: ing.isSelected ? 1.5 : 1.0,
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
                                     const SizedBox(height: 16),
                                   ],
                                 ],
