@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/constants/default_ingredients.dart';
 import '../models/ingredient.dart';
-import '../services/food_validation_service.dart';
 
 class IngredientProvider with ChangeNotifier {
-  final FoodValidationService _validationService = FoodValidationService();
-
   final List<Ingredient> _ingredients = List.from(kInitialIngredients);
   String _searchQuery = '';
   bool _isValidating = false;
@@ -64,52 +61,41 @@ class IngredientProvider with ChangeNotifier {
   }
 
   /// Validates a custom ingredient name via Open Food Facts API and adds it.
+  /// Adds a custom ingredient instantly and classifies it into the correct category.
   Future<bool> addCustomIngredient(String name) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) return false;
 
     // Check if ingredient already exists in list (case-insensitive)
-    final exists = _ingredients.any(
+    final existingIndex = _ingredients.indexWhere(
       (item) => item.name.toLowerCase() == trimmedName.toLowerCase(),
     );
-    if (exists) {
-      _validationError = 'Bu malzeme zaten listede mevcut.';
+
+    if (existingIndex != -1) {
+      // Just select it
+      _ingredients[existingIndex].isSelected = true;
+      _validationError = null;
       notifyListeners();
-      return false;
+      return true;
     }
 
     _isValidating = true;
     _validationError = null;
     notifyListeners();
 
-    try {
-      final isValid = await _validationService.validateIngredient(trimmedName);
-      if (isValid) {
-        // Capitalize first letter of the name
-        final capitalizedName = trimmedName[0].toUpperCase() + trimmedName.substring(1);
-        final newIng = Ingredient(
-          id: trimmedName.toLowerCase().replaceAll(RegExp(r'\s+'), '_'),
-          name: capitalizedName,
-          category: _determineCategory(capitalizedName),
-          isSelected: true,
-          isCustom: true,
-        );
-        _ingredients.add(newIng);
-        _isValidating = false;
-        notifyListeners();
-        return true;
-      } else {
-        _validationError = '"$trimmedName" geçerli bir gıda maddesi olarak doğrulanamadı.';
-        _isValidating = false;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _validationError = 'Doğrulama servisinde hata oluştu. Lütfen bağlantınızı kontrol edin.';
-      _isValidating = false;
-      notifyListeners();
-      return false;
-    }
+    // Instantly accept the ingredient and determine its category
+    final capitalizedName = trimmedName[0].toUpperCase() + trimmedName.substring(1);
+    final newIng = Ingredient(
+      id: trimmedName.toLowerCase().replaceAll(RegExp(r'\s+'), '_'),
+      name: capitalizedName,
+      category: _determineCategory(capitalizedName),
+      isSelected: true,
+      isCustom: true,
+    );
+    _ingredients.add(newIng);
+    _isValidating = false;
+    notifyListeners();
+    return true;
   }
 
   void clearValidationError() {
@@ -148,9 +134,9 @@ class IngredientProvider with ChangeNotifier {
   List<String> get suggestions => _suggestions;
   bool get isLoadingSuggestions => _isLoadingSuggestions;
 
-  /// Fetches suggestions as the user types.
+  /// Fetches suggestions instantly from the local database as the user types.
   Future<void> fetchSuggestions(String query) async {
-    final trimmedQuery = query.trim();
+    final trimmedQuery = query.trim().toLowerCase();
     if (trimmedQuery.length < 3) {
       _suggestions = [];
       notifyListeners();
@@ -160,16 +146,15 @@ class IngredientProvider with ChangeNotifier {
     _isLoadingSuggestions = true;
     notifyListeners();
 
-    try {
-      final results = await _validationService.getSuggestions(trimmedQuery);
-      _suggestions = results;
-    } catch (e) {
-      debugPrint('Error fetching suggestions in provider: $e');
-      _suggestions = [];
-    } finally {
-      _isLoadingSuggestions = false;
-      notifyListeners();
-    }
+    // Query our local database (initial + custom added items)
+    final matches = _ingredients
+        .where((item) => item.name.toLowerCase().contains(trimmedQuery))
+        .map((item) => item.name)
+        .toList();
+
+    _suggestions = matches;
+    _isLoadingSuggestions = false;
+    notifyListeners();
   }
 
   void clearSuggestions() {
