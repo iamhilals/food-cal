@@ -144,13 +144,17 @@ Kurallar:
     return cleaned.trim();
   }
 
-  /// Analyzes a base64-encoded image and returns a list of detected food ingredients.
+  /// Analyzes multiple base64-encoded images and returns a list of detected food ingredients.
   Future<List<String>> detectIngredientsFromImage({
-    required String base64Image,
+    required List<String> base64Images,
     required String apiKey,
   }) async {
     if (apiKey.isEmpty) {
       throw Exception('Gemini API Anahtarı eksik. Lütfen ayarlardan bir API anahtarı ekleyin.');
+    }
+
+    if (base64Images.isEmpty) {
+      throw Exception('Analiz edilecek görsel bulunamadı.');
     }
 
     final List<String> modelCandidates = [
@@ -163,23 +167,29 @@ Kurallar:
     for (var model in modelCandidates) {
       try {
         final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
+        
+        final List<Map<String, dynamic>> parts = [
+          {
+            'text': 'Sana verilen görsellerdeki (bu dolap rafları veya malzemeler olabilir) tüm yiyecek/yemek malzemelerini ortaklaşa tespit et ve sadece Türkçe isimlerini ham bir JSON listesi olarak döndür. Örnek çıktı formatı: ["domates", "biber", "yumurta"]. Yanıtta markdown kod bloğu (```json gibi) veya açıklama bulunmamalıdır, sadece ham JSON listesi döndür.'
+          }
+        ];
+        
+        for (final base64Image in base64Images) {
+          parts.add({
+            'inlineData': {
+              'mimeType': 'image/jpeg',
+              'data': base64Image
+            }
+          });
+        }
+
         final response = await http.post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'contents': [
               {
-                'parts': [
-                  {
-                    'text': 'Bu görseldeki veya fotoğraftaki yiyecek/yemek malzemelerini tespit et ve sadece Türkçe isimlerini ham bir JSON listesi olarak döndür. Örnek çıktı formatı: ["domates", "biber", "yumurta"]. Yanıtta markdown kod bloğu (```json gibi) veya açıklama bulunmamalıdır, sadece ham JSON listesi döndür.'
-                  },
-                  {
-                    'inlineData': {
-                      'mimeType': 'image/jpeg',
-                      'data': base64Image
-                    }
-                  }
-                ]
+                'parts': parts
               }
             ]
           }),

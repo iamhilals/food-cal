@@ -224,14 +224,14 @@ class IngredientProvider with ChangeNotifier {
     return 'Diğer';
   }
 
-  Future<void> detectAndAddIngredients(String base64Image, String apiKey) async {
+  Future<void> detectAndAddIngredients(List<String> base64Images, String apiKey) async {
     _isAnalyzingImage = true;
     _validationError = null;
     notifyListeners();
 
     try {
       final detectedNames = await _generatorService.detectIngredientsFromImage(
-        base64Image: base64Image,
+        base64Images: base64Images,
         apiKey: apiKey,
       );
       addAndSelectIngredients(detectedNames);

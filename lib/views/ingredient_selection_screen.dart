@@ -33,7 +33,6 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     _debounceTimer?.cancel();
     super.dispose();
   }
-
   Future<void> _detectIngredientsFromPhoto() async {
     final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
     final ingProvider = Provider.of<IngredientProvider>(context, listen: false);
@@ -52,6 +51,9 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
       return;
     }
 
+    final List<XFile> pickedFiles = [];
+    final picker = ImagePicker();
+
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppTheme.darkCard,
@@ -67,12 +69,12 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_rounded, color: AppTheme.primaryTeal),
-              title: const Text('Fotoğraf Çek'),
+              title: const Text('Kameradan Fotoğraf Çek'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryTeal),
-              title: const Text('Galeriden Seç'),
+              title: const Text('Galeriden Çoklu Görsel Seç'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],
@@ -83,14 +85,52 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     if (source == null) return;
 
     try {
-      final picker = ImagePicker();
-      final XFile? file = await picker.pickImage(
-        source: source,
-        imageQuality: 60,
-        maxWidth: 1024,
-      );
+      if (source == ImageSource.gallery) {
+        final List<XFile> images = await picker.pickMultiImage(
+          imageQuality: 60,
+          maxWidth: 1024,
+        );
+        if (images.isNotEmpty) {
+          pickedFiles.addAll(images);
+        }
+      } else {
+        bool addMore = true;
+        while (addMore) {
+          final XFile? file = await picker.pickImage(
+            source: ImageSource.camera,
+            imageQuality: 60,
+            maxWidth: 1024,
+          );
+          if (file != null) {
+            pickedFiles.add(file);
+            
+            if (!mounted) break;
+            final bool? choice = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppTheme.darkCard,
+                title: const Text('Fotoğraf Eklendi'),
+                content: Text('Şu an ${pickedFiles.length} adet fotoğraf seçildi. Başka bir fotoğraf çekmek ister misiniz?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Analiz Et', style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Yeni Çek'),
+                  ),
+                ],
+              ),
+            );
+            addMore = choice == true;
+          } else {
+            addMore = false;
+          }
+        }
+      }
 
-      if (file == null) return;
+      if (pickedFiles.isEmpty) return;
 
       if (!mounted) return;
       showDialog(
@@ -104,8 +144,8 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
               const SizedBox(width: 20),
               Expanded(
                 child: Text(
-                  'Görsel analiz ediliyor...',
-                  style: TextStyle(color: AppTheme.textPrimary),
+                  '${pickedFiles.length} görsel analiz ediliyor...',
+                  style: const TextStyle(color: AppTheme.textPrimary),
                 ),
               ),
             ],
@@ -113,16 +153,19 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
         ),
       );
 
-      final bytes = await file.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      final List<String> base64Images = [];
+      for (final file in pickedFiles) {
+        final bytes = await file.readAsBytes();
+        base64Images.add(base64Encode(bytes));
+      }
 
-      await ingProvider.detectAndAddIngredients(base64Image, recipeProvider.apiKey);
+      await ingProvider.detectAndAddIngredients(base64Images, recipeProvider.apiKey);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Malzemeler başarıyla tespit edildi ve seçildi!'),
+          SnackBar(
+            content: Text('${pickedFiles.length} görseldeki tüm malzemeler başarıyla tespit edildi!'),
             backgroundColor: AppTheme.primaryTeal,
           ),
         );
