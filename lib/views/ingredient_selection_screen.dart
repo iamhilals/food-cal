@@ -19,6 +19,7 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _newIngredientController = TextEditingController();
   Timer? _debounceTimer;
+  final Set<String> _collapsedCategories = {};
 
   @override
   void dispose() {
@@ -229,6 +230,45 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                     ),
                   ),
 
+                  // Selected Ingredients Basket (Basket/Bucket)
+                  Consumer<IngredientProvider>(
+                    builder: (context, provider, child) {
+                      final selectedIngs = provider.ingredients.where((item) => item.isSelected).toList();
+                      if (selectedIngs.isEmpty) return const SizedBox.shrink();
+
+                      return Container(
+                        height: 52,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: selectedIngs.length,
+                          itemBuilder: (context, index) {
+                            final ing = selectedIngs[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: InputChip(
+                                label: Text(ing.name),
+                                onDeleted: () => provider.toggleIngredient(ing.id),
+                                deleteIconColor: AppTheme.errorRed,
+                                backgroundColor: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                                labelStyle: const TextStyle(
+                                  color: AppTheme.primaryTeal,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(color: AppTheme.primaryTeal, width: 1.2),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
                   // Categories and Ingredients List
                   Expanded(
                     child: provider.filteredIngredients.isEmpty
@@ -246,46 +286,73 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                             itemBuilder: (context, index) {
                               final category = provider.categories[index];
                               final categoryIngredients = provider.getIngredientsByCategory(category);
+                              final isCollapsed = _collapsedCategories.contains(category);
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    child: Text(
-                                      _getCategoryEmoji(category),
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            color: AppTheme.primaryTeal,
-                                            fontWeight: FontWeight.bold,
+                                  InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        if (isCollapsed) {
+                                          _collapsedCategories.remove(category);
+                                        } else {
+                                          _collapsedCategories.add(category);
+                                        }
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            _getCategoryEmoji(category),
+                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                  color: AppTheme.primaryTeal,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                           ),
+                                          Icon(
+                                            isCollapsed
+                                                ? Icons.keyboard_arrow_down_rounded
+                                                : Icons.keyboard_arrow_up_rounded,
+                                            color: AppTheme.primaryTeal,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  Wrap(
-                                    spacing: 8.0,
-                                    runSpacing: 8.0,
-                                    children: categoryIngredients.map((ing) {
-                                      return FilterChip(
-                                        label: Text(ing.name),
-                                        selected: ing.isSelected,
-                                        onSelected: (_) => provider.toggleIngredient(ing.id),
-                                        backgroundColor: AppTheme.darkCard,
-                                        selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.2),
-                                        checkmarkColor: AppTheme.primaryTeal,
-                                        labelStyle: TextStyle(
-                                          color: ing.isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
-                                          fontWeight: ing.isSelected ? FontWeight.bold : FontWeight.normal,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                          side: BorderSide(
-                                            color: ing.isSelected ? AppTheme.primaryTeal : AppTheme.borderSlate,
-                                            width: ing.isSelected ? 1.5 : 1.0,
+                                  if (!isCollapsed) ...[
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8.0,
+                                      runSpacing: 8.0,
+                                      children: categoryIngredients.map((ing) {
+                                        return FilterChip(
+                                          label: Text(ing.name),
+                                          selected: ing.isSelected,
+                                          onSelected: (_) => provider.toggleIngredient(ing.id),
+                                          backgroundColor: AppTheme.darkCard,
+                                          selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.2),
+                                          checkmarkColor: AppTheme.primaryTeal,
+                                          labelStyle: TextStyle(
+                                            color: ing.isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                            fontWeight: ing.isSelected ? FontWeight.bold : FontWeight.normal,
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                            side: BorderSide(
+                                              color: ing.isSelected ? AppTheme.primaryTeal : AppTheme.borderSlate,
+                                              width: ing.isSelected ? 1.5 : 1.0,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
                                 ],
                               );
                             },
