@@ -310,6 +310,29 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                );
                              }).toList(),
                            ),
+                           const SizedBox(height: 12),
+                           SizedBox(
+                             width: double.infinity,
+                             child: OutlinedButton.icon(
+                               style: OutlinedButton.styleFrom(
+                                 foregroundColor: Colors.orangeAccent,
+                                 side: const BorderSide(color: Colors.orangeAccent, width: 1.5),
+                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                 padding: const EdgeInsets.symmetric(vertical: 10),
+                               ),
+                               icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                               label: const Text('Tümünü Market Listeme Ekle', style: TextStyle(fontWeight: FontWeight.bold)),
+                               onPressed: () {
+                                 recipeProvider.addIngredientsToShoppingList(recipe.missingIngredients);
+                                 ScaffoldMessenger.of(context).showSnackBar(
+                                   const SnackBar(
+                                     content: Text('Eksik malzemeler market sepetinize eklendi!'),
+                                     backgroundColor: AppTheme.primaryTeal,
+                                   ),
+                                 );
+                               },
+                             ),
+                           ),
                         ],
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import 'ingredient_selection_screen.dart';
 import 'recipe_history_screen.dart';
+import 'shopping_list_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -16,6 +17,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _pages = const [
     IngredientSelectionScreen(),
     RecipeHistoryScreen(),
+    ShoppingListScreen(),
   ];
 
   @override
@@ -54,6 +56,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               icon: Icon(Icons.menu_book_rounded),
               activeIcon: Icon(Icons.menu_book_rounded),
               label: 'Defterim',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_basket_rounded),
+              activeIcon: Icon(Icons.shopping_basket_rounded),
+              label: 'Marketim',
             ),
           ],
         ),

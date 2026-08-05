@@ -18,6 +18,7 @@ class RecipeProvider with ChangeNotifier {
   List<Recipe> _history = [];
   String _dietProfile = '';
   List<String> _allergens = [];
+  List<String> _shoppingList = [];
 
   RecipeProvider() {
     _loadFromPrefs();
@@ -30,6 +31,7 @@ class RecipeProvider with ChangeNotifier {
       _userName = prefs.getString('user_name') ?? '';
       _dietProfile = prefs.getString('diet_profile') ?? '';
       _allergens = prefs.getStringList('allergens') ?? [];
+      _shoppingList = prefs.getStringList('shopping_list') ?? [];
       
       final String? historyJson = prefs.getString('recipe_history');
       if (historyJson != null) {
@@ -52,6 +54,7 @@ class RecipeProvider with ChangeNotifier {
   List<Recipe> get history => _history;
   String get dietProfile => _dietProfile;
   List<String> get allergens => _allergens;
+  List<String> get shoppingList => _shoppingList;
 
   Future<void> setApiKey(String key) async {
     _apiKey = key.trim();
@@ -178,6 +181,36 @@ class RecipeProvider with ChangeNotifier {
     _recipe = null;
     _status = RecipeStatus.idle;
     _error = null;
+    notifyListeners();
+  }
+
+  Future<void> addIngredientsToShoppingList(List<String> ingredients) async {
+    for (var ing in ingredients) {
+      final trimmed = ing.trim();
+      if (trimmed.isNotEmpty && !_shoppingList.any((item) => item.toLowerCase() == trimmed.toLowerCase())) {
+        _shoppingList.add(trimmed);
+      }
+    }
+    await _saveShoppingListToPrefs();
+  }
+
+  Future<void> removeIngredientFromShoppingList(String ingredient) async {
+    _shoppingList.removeWhere((item) => item.toLowerCase() == ingredient.toLowerCase());
+    await _saveShoppingListToPrefs();
+  }
+
+  Future<void> clearShoppingList() async {
+    _shoppingList.clear();
+    await _saveShoppingListToPrefs();
+  }
+
+  Future<void> _saveShoppingListToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('shopping_list', _shoppingList);
+    } catch (e) {
+      debugPrint('Error saving shopping list: $e');
+    }
     notifyListeners();
   }
 }
