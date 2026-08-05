@@ -19,6 +19,7 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _modalShown = false;
   final Set<String> _checkedMissingIngredients = {};
+  int _portion = 2;
 
   void _showMissingIngredients(BuildContext context, List<String> missing) {
     setState(() {
@@ -53,6 +54,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       }
     }
     return null;
+  }
+
+  String _scaleIngredient(String ingredient, double multiplier) {
+    final regex = RegExp(r'(\d+(?:[.,]\d+)?)');
+    return ingredient.replaceAllMapped(regex, (match) {
+      final numberStr = match.group(1)?.replaceAll(',', '.') ?? '';
+      final val = double.tryParse(numberStr);
+      if (val != null) {
+        final scaled = val * multiplier;
+        if (scaled == scaled.toInt()) {
+          return scaled.toInt().toString();
+        }
+        return scaled.toStringAsFixed(1).replaceAll('.', ',');
+      }
+      return match.group(0) ?? '';
+    });
   }
 
   @override
@@ -270,10 +287,81 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                   // Nutritional Macros Chart Card
                   MacroChart(
-                    calories: recipe.calories,
-                    protein: recipe.protein,
-                    fat: recipe.fat,
-                    carbs: recipe.carbs,
+                    calories: recipe.calories * (_portion / 2.0),
+                    protein: recipe.protein * (_portion / 2.0),
+                    fat: recipe.fat * (_portion / 2.0),
+                    carbs: recipe.carbs * (_portion / 2.0),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Portion selector & Ingredients list
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Malzemeler',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppTheme.darkCard,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppTheme.borderSlate, width: 1.2),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline_rounded, color: AppTheme.primaryTeal, size: 20),
+                                  onPressed: _portion > 1
+                                      ? () {
+                                          setState(() {
+                                            _portion--;
+                                          });
+                                        }
+                                      : null,
+                                ),
+                                Text(
+                                  '$_portion Porsiyon',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryTeal, size: 20),
+                                  onPressed: () {
+                                    setState(() {
+                                      _portion++;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (recipe.ingredients.isNotEmpty) ...[
+                        Column(
+                          children: recipe.ingredients.map((ing) {
+                            final scaledText = _scaleIngredient(ing, _portion / 2.0);
+                            return _IngredientCheckItem(key: ValueKey('$scaledText$_portion'), text: scaledText);
+                          }).toList(),
+                        ),
+                      ] else ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Malzeme detayları yapay zeka tarafından bu tarif için listelenmedi.',
+                            style: TextStyle(color: AppTheme.textSecondary, fontStyle: FontStyle.italic, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 28),
 
@@ -734,6 +822,52 @@ class _MutfakZamanlayiciSheetState extends State<MutfakZamanlayiciSheet> {
           ),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+}
+
+class _IngredientCheckItem extends StatefulWidget {
+  final String text;
+  const _IngredientCheckItem({super.key, required this.text});
+
+  @override
+  State<_IngredientCheckItem> createState() => _IngredientCheckItemState();
+}
+
+class _IngredientCheckItemState extends State<_IngredientCheckItem> {
+  bool _checked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _checked = !_checked;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(
+              _checked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+              color: _checked ? AppTheme.primaryTeal : AppTheme.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _checked ? AppTheme.textSecondary : AppTheme.textPrimary,
+                  decoration: _checked ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -103,13 +103,19 @@ Kurallar:
    - Tespit ettiğin eksik malzemeleri "missing_ingredients" listesine ekle.
    - "is_sufficient" alanını false yap.
    - Tarifin adını, adımlarını ve süresini eksik malzemeler de varmış gibi oluştur (kullanıcıya bu yemeği nasıl yapacağını göstermek için).
-3. Tarifte kullanılan malzemelerin porsiyon miktarlarına göre toplam besin değerlerini (Kalori kcal, Protein g, Yağ g, Karbonhidrat g) hesapla.
-4. Tarif veya kullanılan malzemeler hakkında eğlenceli, esprili, iştah kabartan ve motive edici bir şef yorumu ("chef_comment") yaz. (Örn: "Mercimeğin patatesle olan muhteşem aşkı! Şef der ki: Yanına bol köpüklü bir ayran ve taze naneli salata çok yakışır!")
-5. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+3. Tarifin malzemelerini net miktarlarıyla birlikte "ingredients" listesine ekle (Örn: "2 adet yumurta", "1.5 su bardağı süt", "100g un").
+4. Tarifte kullanılan malzemelerin porsiyon miktarlarına göre toplam besin değerlerini (Kalori kcal, Protein g, Yağ g, Karbonhidrat g) hesapla.
+5. Tarif veya kullanılan malzemeler hakkında eğlenceli, esprili, iştah kabartan ve motive edici bir şef yorumu ("chef_comment") yaz. (Örn: "Mercimeğin patatesle olan muhteşem aşkı! Şef der ki: Yanına bol köpüklü bir ayran ve taze naneli salata çok yakışır!")
+6. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
 
 {
   "recipe_name": "Tarif Adı",
   "prep_time": "30 dakika",
+  "ingredients": [
+    "2 su bardağı kırmızı mercimek",
+    "1 adet kuru soğan",
+    "1 yemek kaşığı tereyağı"
+  ],
   "steps": [
     "Adım 1: ...",
     "Adım 2: ..."
@@ -306,16 +312,21 @@ $truncatedText
 Kurallar:
 1. "recipe_name" alanına yemeğin adını yaz.
 2. "prep_time" alanına hazırlama ve pişirme süresini yaz (Örn: "45 dakika").
-3. "steps" listesine tarifin yapılış adımlarını sırasıyla ekle.
-4. Tarifin porsiyon bazlı yaklaşık besin değerlerini hesapla (Kalori kcal, Protein g, Yağ g, Karbonhidrat g). Eğer metinde yazmıyorsa malzemelere göre şef bilgisiyle tahmin et.
-5. "is_sufficient" alanını true yap.
-6. "missing_ingredients" listesini boş bırak [].
-7. Tarif için eğlenceli ve samimi bir şef yorumu ("chef_comment") yaz.
-8. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+3. "ingredients" listesine tarifte kullanılan tüm malzemeleri ve net miktarlarını ekle (Örn: "2 adet yumurta", "1.5 su bardağı süt", "100g un").
+4. "steps" listesine tarifin yapılış adımlarını sırasıyla ekle.
+5. Tarifin porsiyon bazlı yaklaşık besin değerlerini hesapla (Kalori kcal, Protein g, Yağ g, Karbonhidrat g). Eğer metinde yazmıyorsa malzemelere göre şef bilgisiyle tahmin et.
+6. "is_sufficient" alanını true yap.
+7. "missing_ingredients" listesini boş bırak [].
+8. Tarif için eğlenceli ve samimi bir şef yorumu ("chef_comment") yaz.
+9. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
 
 {
   "recipe_name": "Tarif Adı",
   "prep_time": "30 dakika",
+  "ingredients": [
+    "Malzeme 1 (Örn: 2 adet yumurta)",
+    "Malzeme 2 (Örn: 100g un)"
+  ],
   "steps": [
     "Adım 1: ...",
     "Adım 2: ..."
