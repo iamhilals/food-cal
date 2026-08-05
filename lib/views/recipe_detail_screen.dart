@@ -38,6 +38,23 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
+  Duration? _parseDurationFromStep(String step) {
+    final regex = RegExp(r'(\d+)\s*(dakika|dk|saat|saniye)', caseSensitive: false);
+    final match = regex.firstMatch(step);
+    if (match != null) {
+      final value = int.tryParse(match.group(1) ?? '0') ?? 0;
+      final unit = match.group(2)?.toLowerCase() ?? '';
+      if (unit.contains('saat')) {
+        return Duration(hours: value);
+      } else if (unit.contains('saniye')) {
+        return Duration(seconds: value);
+      } else {
+        return Duration(minutes: value);
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipeProvider = Provider.of<RecipeProvider>(context);
@@ -381,6 +398,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   // Clean list showing chronological steps
                   ...List.generate(recipe.steps.length, (idx) {
                     final isLast = idx == recipe.steps.length - 1;
+                    final stepText = recipe.steps[idx];
+                    final duration = _parseDurationFromStep(stepText);
                     return IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -418,13 +437,38 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 24),
-                              child: Text(
-                                recipe.steps[idx],
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  height: 1.4,
-                                  color: AppTheme.textPrimary,
-                                ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      recipe.steps[idx],
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        height: 1.4,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (duration != null) ...[
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.timer_outlined, color: AppTheme.primaryTeal),
+                                      onPressed: () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (context) => MutfakZamanlayiciSheet(
+                                            stepName: 'Adım ${idx + 1}',
+                                            duration: duration,
+                                          ),
+                                        );
+                                      },
+                                      tooltip: 'Zamanlayıcıyı Başlat',
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ),
@@ -517,3 +561,180 @@ class _AnimatedRecipeLoaderState extends State<AnimatedRecipeLoader> {
   }
 }
 
+class MutfakZamanlayiciSheet extends StatefulWidget {
+  final String stepName;
+  final Duration duration;
+
+  const MutfakZamanlayiciSheet({
+    super.key,
+    required this.stepName,
+    required this.duration,
+  });
+
+  @override
+  State<MutfakZamanlayiciSheet> createState() => _MutfakZamanlayiciSheetState();
+}
+
+class _MutfakZamanlayiciSheetState extends State<MutfakZamanlayiciSheet> {
+  late int _remainingSeconds;
+  Timer? _timer;
+  bool _isRunning = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = widget.duration.inSeconds;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        _timer?.cancel();
+        setState(() {
+          _isRunning = false;
+        });
+        _showAlarmDialog();
+      }
+    });
+  }
+
+  void _showAlarmDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.orangeAccent, width: 2),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.alarm_on_rounded, color: Colors.orangeAccent, size: 28),
+            SizedBox(width: 8),
+            Text('Süre Doldu!'),
+          ],
+        ),
+        content: Text(
+          '"${widget.stepName}" için zamanlayıcı tamamlandı. Yemeğinizi kontrol etme zamanı!',
+          style: const TextStyle(color: AppTheme.textPrimary),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+            onPressed: () {
+              Navigator.pop(context); // close alarm dialog
+              Navigator.pop(this.context); // close bottom sheet
+            },
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatTime() {
+    final minutes = _remainingSeconds ~/ 60;
+    final seconds = _remainingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSeconds = widget.duration.inSeconds;
+    final progress = totalSeconds > 0 ? _remainingSeconds / totalSeconds : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: AppTheme.darkBg,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppTheme.borderSlate,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            widget.stepName,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 160,
+                height: 160,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 10,
+                  backgroundColor: AppTheme.borderSlate,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
+                ),
+              ),
+              Text(
+                _formatTime(),
+                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+              ),
+              IconButton.filled(
+                style: IconButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                ),
+                icon: Icon(_isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 28),
+                onPressed: () {
+                  if (_isRunning) {
+                    _timer?.cancel();
+                    setState(() {
+                      _isRunning = false;
+                    });
+                  } else {
+                    setState(() {
+                      _isRunning = true;
+                    });
+                    _startTimer();
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
