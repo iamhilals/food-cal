@@ -17,6 +17,7 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _modalShown = false;
+  final Set<String> _checkedMissingIngredients = {};
 
   void _showMissingIngredients(BuildContext context, List<String> missing) {
     setState(() {
@@ -280,11 +281,35 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            recipe.missingIngredients.join(', '),
-                            style: const TextStyle(color: AppTheme.textPrimary),
-                          ),
+                           Column(
+                             children: recipe.missingIngredients.map((item) {
+                               final isChecked = _checkedMissingIngredients.contains(item);
+                               return CheckboxListTile(
+                                 value: isChecked,
+                                 onChanged: (bool? val) {
+                                   setState(() {
+                                     if (val == true) {
+                                       _checkedMissingIngredients.add(item);
+                                     } else {
+                                       _checkedMissingIngredients.remove(item);
+                                     }
+                                   });
+                                 },
+                                 title: Text(
+                                   item,
+                                   style: TextStyle(
+                                     color: isChecked ? AppTheme.textSecondary : AppTheme.textPrimary,
+                                     decoration: isChecked ? TextDecoration.lineThrough : null,
+                                     fontSize: 14,
+                                   ),
+                                 ),
+                                 dense: true,
+                                 controlAffinity: ListTileControlAffinity.leading,
+                                 activeColor: Colors.orangeAccent,
+                                 contentPadding: EdgeInsets.zero,
+                               );
+                             }).toList(),
+                           ),
                         ],
                       ),
                     ),
