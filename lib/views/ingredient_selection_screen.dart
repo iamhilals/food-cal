@@ -122,6 +122,7 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
             children: [
               Column(
                 children: [
+                  const UserProfileCard(),
                   // Search Bar and Add Custom section
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -318,3 +319,175 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
     );
   }
 }
+
+class UserProfileCard extends StatefulWidget {
+  const UserProfileCard({super.key});
+
+  @override
+  State<UserProfileCard> createState() => _UserProfileCardState();
+}
+
+class _UserProfileCardState extends State<UserProfileCard> {
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recipeProvider = Provider.of<RecipeProvider>(context);
+
+    if (recipeProvider.hasUserName) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.darkCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderSlate),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryTeal.withValues(alpha: 0.1),
+              child: const Text('👨‍🍳', style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hoş geldin, Şef ${recipeProvider.userName}!',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const Text(
+                    'Bugün hangi lezzeti tasarlıyoruz?',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.textSecondary),
+              onPressed: () => _showNameEditDialog(context, recipeProvider),
+            )
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryTeal.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryTeal.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: const [
+              Text('👨‍🍳', style: TextStyle(fontSize: 24)),
+              SizedBox(width: 8),
+              Text(
+                'Mutfak Karşılaması',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Yemek serüvenine başlamak için şef adınızı girin:',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Şef Adınız...',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  onSubmitted: (_) => _saveName(recipeProvider),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => _saveName(recipeProvider),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Giriş'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveName(RecipeProvider provider) {
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      provider.setUserName(name);
+    }
+  }
+
+  void _showNameEditDialog(BuildContext context, RecipeProvider provider) {
+    final controller = TextEditingController(text: provider.userName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSlate),
+        ),
+        title: const Text('Şef Adını Düzenle'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Şef Adınız...'),
+          textCapitalization: TextCapitalization.words,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                provider.setUserName(name);
+              }
+              Navigator.of(context).pop();
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
