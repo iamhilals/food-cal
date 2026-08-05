@@ -8,6 +8,7 @@ class Recipe {
   final double carbs;
   final bool isSufficient;
   final List<String> missingIngredients;
+  final String chefComment; // AI Şef'in eğlenceli yorumu ve mutfak notu
 
   Recipe({
     required this.name,
@@ -19,6 +20,7 @@ class Recipe {
     required this.carbs,
     required this.isSufficient,
     required this.missingIngredients,
+    required this.chefComment,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class Recipe {
       'carbohydrates': carbs,
       'is_sufficient': isSufficient,
       'missing_ingredients': missingIngredients,
+      'chef_comment': chefComment,
     };
   }
 
@@ -46,6 +49,7 @@ class Recipe {
       carbs: (json['carbohydrates'] ?? json['carbs'] ?? 0).toDouble(),
       isSufficient: json['is_sufficient'] as bool? ?? true,
       missingIngredients: (json['missing_ingredients'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      chefComment: json['chef_comment'] as String? ?? 'Şefimiz bu malzemeleri bir araya getirdiğiniz için mutlu!',
     );
   }
 }

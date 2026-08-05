@@ -203,6 +203,52 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Chef's Comment Bubble
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryIndigo.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.secondaryIndigo.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '👨‍🍳',
+                          style: TextStyle(fontSize: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Şefin Yorumu',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.secondaryIndigo,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                recipe.chefComment,
+                                style: const TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 14,
+                                  color: AppTheme.textPrimary,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // Nutritional Macros Chart Card
                   MacroChart(
                     calories: recipe.calories,

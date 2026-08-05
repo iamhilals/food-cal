@@ -94,7 +94,8 @@ Kurallar:
    - "is_sufficient" alanını false yap.
    - Tarifin adını, adımlarını ve süresini eksik malzemeler de varmış gibi oluştur (kullanıcıya bu yemeği nasıl yapacağını göstermek için).
 3. Tarifte kullanılan malzemelerin porsiyon miktarlarına göre toplam besin değerlerini (Kalori kcal, Protein g, Yağ g, Karbonhidrat g) hesapla.
-4. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
+4. Tarif veya kullanılan malzemeler hakkında eğlenceli, esprili, iştah kabartan ve motive edici bir şef yorumu ("chef_comment") yaz. (Örn: "Mercimeğin patatesle olan muhteşem aşkı! Şef der ki: Yanına bol köpüklü bir ayran ve taze naneli salata çok yakışır!")
+5. Yanıtı MUTLAKA aşağıdaki JSON şemasına uygun olarak döndür. Yanıt sadece ham JSON olmalıdır, markdown kod blokları (```json vb.) içermemelidir:
 
 {
   "recipe_name": "Tarif Adı",
@@ -108,7 +109,8 @@ Kurallar:
   "fat": 10.0,
   "carbohydrates": 45.0,
   "is_sufficient": true veya false,
-  "missing_ingredients": ["Malzeme 1", "Malzeme 2"]
+  "missing_ingredients": ["Malzeme 1", "Malzeme 2"],
+  "chef_comment": "Şefin esprili ve eğlenceli mutfak notu"
 }
 ''';
   }
