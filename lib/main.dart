@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/ingredient_provider.dart';
 import 'providers/recipe_provider.dart';
-import 'views/ingredient_selection_screen.dart';
+import 'views/main_navigation_screen.dart';
 
 void main() {
   runApp(
@@ -26,7 +26,7 @@ class SmartFoodCalApp extends StatelessWidget {
       title: 'Smart Ingredients & Recipe Generator',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const IngredientSelectionScreen(),
+      home: const MainNavigationScreen(),
     );
   }
 }
