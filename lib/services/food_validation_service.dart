@@ -61,6 +61,21 @@ class FoodValidationService {
   List<String> _cleanAndFilterSuggestions(List<dynamic> products, String query) {
     final List<String> cleanedSuggestions = [];
 
+    // Industrial product words to reject completely
+    final forbiddenProductWords = {
+      'bar', 'biscuit', 'cookie', 'cracker', 'chips', 'cips', 'gevrek', 'flakes',
+      'granola', 'müsli', 'muesli', 'puding', 'pudding', 'shake', 'drink', 'içecek',
+      'çikolata', 'chocolate', 'protein', 'kokteyl', 'cocktail', 'tuzlu',
+      'tatlı', 'şekerli', 'sugar', 'seker', 'tatlandırıcılı', 'organik', 'organic',
+      'ekstrakt', 'extract', 'sirke', 'vinegar', 'sos', 'sauce'
+    };
+
+    // English filler words or translations to remove from the name strings
+    final englishWordsToRemove = {
+      'seed', 'seeds', 'coconut', 'date', 'milk', 'water', 'oil', 'powder',
+      'flour', 'mix', 'raw', 'premium', 'superfood', 'with', 'and', 'organic'
+    };
+
     // Foreign stop words to exclude foreign products/descriptions
     final foreignStopWords = {
       'de', 'la', 'le', 'les', 'en', 'et', 'con', 'y', 'del', 'au', 'with', 'and', 'of',
@@ -86,9 +101,18 @@ class FoodValidationService {
 
       if (name.isEmpty) continue;
 
-      // 4. Heuristic: Product name shouldn't be too long (max 4 words)
+      // Split into words for granular filtering
       final words = name.split(' ');
-      if (words.length > 4) continue;
+
+      // 4. Heuristic: Skip industrial products
+      bool isIndustrial = false;
+      for (var w in words) {
+        if (forbiddenProductWords.contains(w.toLowerCase())) {
+          isIndustrial = true;
+          break;
+        }
+      }
+      if (isIndustrial) continue;
 
       // 5. Heuristic: Exclude if it contains any common foreign stop words
       bool hasForeignWords = false;
@@ -100,11 +124,41 @@ class FoodValidationService {
       }
       if (hasForeignWords) continue;
 
-      // 6. Heuristic: Must contain the typed query (case-insensitive)
-      if (!name.toLowerCase().contains(query.toLowerCase())) continue;
+      // 6. Clean individual words (remove English translations and duplicates of the query)
+      final List<String> cleanWords = [];
+      for (var w in words) {
+        final lowerW = w.toLowerCase();
+        
+        // Skip English words
+        if (englishWordsToRemove.contains(lowerW)) {
+          continue;
+        }
+        
+        // Skip duplicate query occurrences (e.g. if query is 'chia' and word is 'chia', keep only the first 'chia')
+        if (lowerW == query.toLowerCase() && 
+            cleanWords.any((existing) => existing.toLowerCase() == query.toLowerCase())) {
+          continue;
+        }
+        
+        // Skip exact duplicate words in the same string
+        if (cleanWords.any((existing) => existing.toLowerCase() == lowerW)) {
+          continue;
+        }
 
-      // 7. Capitalize first letter of each word for clean UI presentation
-      final capitalized = words.map((w) {
+        cleanWords.add(w);
+      }
+
+      var cleanedName = cleanWords.join(' ').trim();
+      if (cleanedName.isEmpty) continue;
+
+      // 7. Heuristic: Must contain the typed query (case-insensitive)
+      if (!cleanedName.toLowerCase().contains(query.toLowerCase())) continue;
+
+      // 8. Capitalize first letter of each word
+      final finalWords = cleanedName.split(' ');
+      if (finalWords.length > 4) continue; // Keep it short
+
+      final capitalized = finalWords.map((w) {
         if (w.isEmpty) return '';
         return w[0].toUpperCase() + w.substring(1).toLowerCase();
       }).join(' ').trim();
