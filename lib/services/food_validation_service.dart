@@ -4,7 +4,7 @@ import '../core/services/http_client.dart';
 
 class FoodValidationService {
   // Open Food Facts API search url
-  static const String _baseUrl = 'https://world.openfoodfacts.org/cgi/search.pl';
+  static const String _baseUrl = 'https://tr.openfoodfacts.org/cgi/search.pl';
 
   /// Validates if the given [ingredientName] is a valid food item.
   /// Returns `true` if Open Food Facts API returns matching food products.
@@ -13,7 +13,7 @@ class FoodValidationService {
     if (query.isEmpty) return false;
 
     try {
-      final uri = Uri.parse('$_baseUrl?search_terms=${Uri.encodeComponent(query)}&search_simple=1&action=process&json=1');
+      final uri = Uri.parse('$_baseUrl?search_terms=${Uri.encodeComponent(query)}&search_simple=1&action=process&json=1&cc=tr&lc=tr');
       final response = await CustomHttpClient.get(uri);
 
       if (response.statusCode == 200) {
@@ -40,7 +40,7 @@ class FoodValidationService {
     if (searchTerms.length < 3) return [];
 
     try {
-      final uri = Uri.parse('$_baseUrl?search_terms=${Uri.encodeComponent(searchTerms)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name');
+      final uri = Uri.parse('$_baseUrl?search_terms=${Uri.encodeComponent(searchTerms)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name&cc=tr&lc=tr');
       final response = await CustomHttpClient.get(uri);
 
       if (response.statusCode == 200) {
