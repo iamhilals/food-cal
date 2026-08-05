@@ -26,6 +26,8 @@ class _VoiceCookingScreenState extends State<VoiceCookingScreen> {
   bool _isListening = false;
   bool _isSpeaking = false;
   String _lastRecognizedWords = '';
+  double _speechRate = 0.55;
+  double _speechPitch = 1.0;
 
   @override
   void initState() {
@@ -37,8 +39,8 @@ class _VoiceCookingScreenState extends State<VoiceCookingScreen> {
   void _initTts() {
     _tts = FlutterTts();
     _tts.setLanguage('tr-TR');
-    _tts.setSpeechRate(0.55);
-    _tts.setPitch(1.0);
+    _tts.setSpeechRate(_speechRate);
+    _tts.setPitch(_speechPitch);
 
     _tts.setStartHandler(() {
       setState(() {
@@ -102,6 +104,8 @@ class _VoiceCookingScreenState extends State<VoiceCookingScreen> {
   Future<void> _speakCurrentStep() async {
     if (_currentStepIndex < 0 || _currentStepIndex >= widget.steps.length) return;
     await _tts.stop();
+    await _tts.setSpeechRate(_speechRate);
+    await _tts.setPitch(_speechPitch);
     final text = widget.steps[_currentStepIndex];
     // Speak step counter and step text
     await _tts.speak('Adım ${Uri.encodeComponent((_currentStepIndex + 1).toString())}. $text');
@@ -243,6 +247,79 @@ class _VoiceCookingScreenState extends State<VoiceCookingScreen> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Collapsible TTS controls card
+              ExpansionTile(
+                title: const Text(
+                  'Asistan Ses Ayarları',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                leading: const Icon(Icons.tune_rounded, color: AppTheme.textSecondary, size: 20),
+                backgroundColor: AppTheme.darkCard,
+                collapsedBackgroundColor: AppTheme.darkCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppTheme.borderSlate, width: 1.2),
+                ),
+                collapsedShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppTheme.borderSlate, width: 1.2),
+                ),
+                textColor: AppTheme.primaryTeal,
+                iconColor: AppTheme.primaryTeal,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Text('Konuşma Hızı: ', style: TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                            Text('${_speechRate.toStringAsFixed(2)}x', style: const TextStyle(color: AppTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Expanded(
+                              child: Slider(
+                                value: _speechRate,
+                                min: 0.3,
+                                max: 1.2,
+                                activeColor: AppTheme.primaryTeal,
+                                inactiveColor: AppTheme.borderSlate,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _speechRate = val;
+                                  });
+                                  _tts.setSpeechRate(_speechRate);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const Text('Ses Tonu: ', style: TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                            Text(_speechPitch.toStringAsFixed(1), style: const TextStyle(color: AppTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Expanded(
+                              child: Slider(
+                                value: _speechPitch,
+                                min: 0.5,
+                                max: 1.5,
+                                activeColor: AppTheme.primaryTeal,
+                                inactiveColor: AppTheme.borderSlate,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _speechPitch = val;
+                                  });
+                                  _tts.setPitch(_speechPitch);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
 
