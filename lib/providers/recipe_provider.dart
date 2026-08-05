@@ -16,6 +16,8 @@ class RecipeProvider with ChangeNotifier {
   String _apiKey = '';
   String _userName = '';
   List<Recipe> _history = [];
+  String _dietProfile = '';
+  List<String> _allergens = [];
 
   RecipeProvider() {
     _loadFromPrefs();
@@ -26,6 +28,8 @@ class RecipeProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _apiKey = prefs.getString('gemini_api_key') ?? const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
       _userName = prefs.getString('user_name') ?? '';
+      _dietProfile = prefs.getString('diet_profile') ?? '';
+      _allergens = prefs.getStringList('allergens') ?? [];
       
       final String? historyJson = prefs.getString('recipe_history');
       if (historyJson != null) {
@@ -46,6 +50,8 @@ class RecipeProvider with ChangeNotifier {
   String get userName => _userName;
   bool get hasUserName => _userName.isNotEmpty;
   List<Recipe> get history => _history;
+  String get dietProfile => _dietProfile;
+  List<String> get allergens => _allergens;
 
   Future<void> setApiKey(String key) async {
     _apiKey = key.trim();
@@ -69,6 +75,43 @@ class RecipeProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setDietProfile(String profile) async {
+    _dietProfile = profile;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('diet_profile', _dietProfile);
+    } catch (e) {
+      debugPrint('Error saving diet profile: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> toggleAllergen(String allergen) async {
+    if (_allergens.contains(allergen)) {
+      _allergens.remove(allergen);
+    } else {
+      _allergens.add(allergen);
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('allergens', _allergens);
+    } catch (e) {
+      debugPrint('Error saving allergens: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> setAllergens(List<String> list) async {
+    _allergens = List.from(list);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('allergens', _allergens);
+    } catch (e) {
+      debugPrint('Error saving allergens: $e');
+    }
+    notifyListeners();
+  }
+
   /// Triggers the recipe generation from Gemini using the [selectedIngredients].
   Future<void> generateRecipe(List<String> selectedIngredients) async {
     if (selectedIngredients.isEmpty) {
@@ -87,6 +130,8 @@ class RecipeProvider with ChangeNotifier {
       final generatedRecipe = await _generatorService.generateRecipe(
         selectedIngredients: selectedIngredients,
         apiKey: _apiKey,
+        dietProfile: _dietProfile,
+        allergens: _allergens,
       );
       _recipe = generatedRecipe;
       _status = RecipeStatus.success;

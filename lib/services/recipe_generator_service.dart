@@ -10,6 +10,8 @@ class RecipeGeneratorService {
   Future<Recipe> generateRecipe({
     required List<String> selectedIngredients,
     required String apiKey,
+    String dietProfile = '',
+    List<String> allergens = const [],
   }) async {
     if (apiKey.isEmpty) {
       throw Exception('Gemini API Anahtarı eksik. Lütfen ayarlardan bir API anahtarı ekleyin.');
@@ -22,7 +24,7 @@ class RecipeGeneratorService {
       'gemini-3.5-flash-lite',
     ];
 
-    final prompt = _buildPrompt(selectedIngredients);
+    final prompt = _buildPrompt(selectedIngredients, dietProfile, allergens);
     Exception? lastException;
 
     for (var model in modelCandidates) {
@@ -75,9 +77,17 @@ class RecipeGeneratorService {
   }
 
   /// Builds the prompt with explicit instruction to return a JSON matching the Recipe schema.
-  String _buildPrompt(List<String> selectedIngredients) {
+  String _buildPrompt(List<String> selectedIngredients, String dietProfile, List<String> allergens) {
+    final String dietRules = dietProfile.isNotEmpty 
+        ? '\n- KULLANICININ DİYETİ: $dietProfile. Tarif kesinlikle bu diyete/beslenme profiline %100 UYGUN OLMAK zorundadır.' 
+        : '';
+    final String allergenRules = allergens.isNotEmpty 
+        ? '\n- KULLANICININ ALERJİLERİ: ${allergens.join(", ")}. Tarif kesinlikle bu alerjenleri ve bunları içeren veya bunlardan üretilen hiçbir malzemeyi İÇERMEMELİDİR.' 
+        : '';
+
     return '''
 Sen profesyonel bir şefsin. Sana verilen seçili malzemeler ve temel mutfak malzemeleri (varsayılan olarak el altında bulunan) listesini kullanarak Türkçe bir yemek tarifi oluşturmalısın.
+$dietRules$allergenRules
 
 Seçilen Malzemeler: ${selectedIngredients.join(', ')}
 Varsayılan Temel Taş Malzemeler (El altında olduğu varsayılır, seçilmemiş olsalar bile kullanılabilir): ${kImplicitIngredients.join(', ')}
