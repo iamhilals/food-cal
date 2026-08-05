@@ -253,7 +253,7 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
                                   Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                     child: Text(
-                                      category,
+                                      _getCategoryEmoji(category),
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                             color: AppTheme.primaryTeal,
                                             fontWeight: FontWeight.bold,
@@ -368,6 +368,23 @@ class _IngredientSelectionScreenState extends State<IngredientSelectionScreen> {
         },
       ),
     );
+  }
+
+  String _getCategoryEmoji(String category) {
+    switch (category) {
+      case 'Sebzeler':
+        return '🥦 Sebzeler';
+      case 'Bakliyatlar':
+        return '🌾 Bakliyatlar';
+      case 'Et & Balık Ürünleri':
+        return '🥩 Et & Balık Ürünleri';
+      case 'Süt Ürünleri':
+        return '🥛 Süt Ürünleri';
+      case 'Diğer':
+        return '🥚 Diğer';
+      default:
+        return '🛒 $category';
+    }
   }
 }
 
