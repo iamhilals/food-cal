@@ -7,6 +7,7 @@ import '../providers/ingredient_provider.dart';
 import '../providers/recipe_provider.dart';
 import 'widgets/macro_chart.dart';
 import 'widgets/missing_ingredients_modal.dart';
+import 'voice_cooking_screen.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   const RecipeDetailScreen({super.key});
@@ -340,12 +341,40 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ],
 
                   // Step-by-Step Instructions
-                  Text(
-                    'Hazırlanışı',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Hazırlanışı',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppTheme.primaryTeal,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
+                          ),
                         ),
+                        icon: const Icon(Icons.record_voice_over_rounded, size: 18),
+                        label: const Text('Sesli Asistan', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VoiceCookingScreen(
+                                recipeName: recipe.name,
+                                steps: recipe.steps,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
