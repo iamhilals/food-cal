@@ -72,6 +72,134 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     });
   }
 
+  Widget _buildStepTextWithTooltips(BuildContext context, String text) {
+    final List<InlineSpan> spans = [];
+    
+    final Map<String, String> matchPatterns = {
+      r'(benmari)': 'benmari',
+      r'(sotele\w*|sotelene\w*)': 'sotelemek',
+      r'(marine\w*)': 'marine etmek',
+      r'(jülyen|julienne)': 'jülyen',
+      r'(mühürle\w*)': 'mühürlemek',
+      r'(demle\w*)': 'demlemek',
+      r'(blanş\w*)': 'blanş etmek',
+      r'(al dente)': 'al dente',
+      r'(karamelize\w*)': 'karamelize',
+      r'(meyane\w*)': 'meyane',
+    };
+    
+    final patternString = matchPatterns.keys.join('|');
+    final regex = RegExp(patternString, caseSensitive: false);
+    
+    int lastIndex = 0;
+    final matches = regex.allMatches(text);
+    
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 15, height: 1.4, color: AppTheme.textPrimary),
+      );
+    }
+    
+    for (final match in matches) {
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex, match.start),
+          style: const TextStyle(color: AppTheme.textPrimary),
+        ));
+      }
+      
+      final matchedWord = text.substring(match.start, match.end);
+      
+      String matchedDictKey = '';
+      for (final entry in matchPatterns.entries) {
+        if (RegExp(entry.key, caseSensitive: false).hasMatch(matchedWord)) {
+          matchedDictKey = entry.value;
+          break;
+        }
+      }
+      
+      final definition = kCulinaryDictionary[matchedDictKey] ?? '';
+      
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: GestureDetector(
+            onTap: () {
+              _showCulinaryTooltip(context, matchedWord, definition);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppTheme.primaryTeal,
+                    width: 1.5,
+                    style: BorderStyle.solid,
+                  ),
+                ),
+              ),
+              child: Text(
+                matchedWord,
+                style: const TextStyle(
+                  color: AppTheme.primaryTeal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      lastIndex = match.end;
+    }
+    
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastIndex),
+        style: const TextStyle(color: AppTheme.textPrimary),
+      ));
+    }
+    
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 15, height: 1.4),
+        children: spans,
+      ),
+    );
+  }
+
+  void _showCulinaryTooltip(BuildContext context, String word, String definition) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSlate, width: 1.2),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.menu_book_rounded, color: AppTheme.primaryTeal),
+            SizedBox(width: 8),
+            Text('Şefin Terim Sözlüğü'),
+          ],
+        ),
+        content: Text(
+          definition,
+          style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Anladım', style: TextStyle(color: AppTheme.primaryTeal)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipeProvider = Provider.of<RecipeProvider>(context);
@@ -574,14 +702,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                      recipe.steps[idx],
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        height: 1.4,
-                                        color: AppTheme.textPrimary,
-                                      ),
-                                    ),
+                                    child: _buildStepTextWithTooltips(context, recipe.steps[idx]),
                                   ),
                                   if (duration != null) ...[
                                     const SizedBox(width: 8),
@@ -917,3 +1038,16 @@ class _IngredientCheckItemState extends State<_IngredientCheckItem> {
     );
   }
 }
+
+const Map<String, String> kCulinaryDictionary = {
+  'benmari': 'Benmari: Isıyla doğrudan temas etmesi istenmeyen yiyeceklerin (örneğin çikolata) sıcak su dolu bir kabın içine oturtulan başka bir kapta eritilmesi/pişirilmesi yöntemi.',
+  'sotelemek': 'Sotelemek: Az miktarda yağda, yüksek ateşte, sürekli karıştırarak veya sallayarak yiyeceklerin hızlıca pişirilmesi yöntemi.',
+  'marine etmek': 'Marine Etmek: Yiyeceklerin (özellikle etlerin) lezzet kazanması ve yumuşaması için baharat, yağ ve asitli sıvılarda bekletilmesi işlemi.',
+  'jülyen': 'Jülyen (Julienne): Yiyeceklerin ince, uzun ve kibrit çöpü şeklinde doğranma stili.',
+  'mühürlemek': 'Mühürlemek: Etin yüksek ısıda tavada hızlıca dış yüzeyinin pişirilerek suyunun ve lezzetinin içinde kalmasının sağlanması işlemi.',
+  'demlemek': 'Demlemek: Pişen yiyeceklerin (pilav, makarna, çay) ocaktan alındıktan sonra kendi buharıyla dinlenmeye bırakılması.',
+  'blanş etmek': 'Blanş Etmek (Şoklama): Yiyeceklerin kısa süre kaynar suya batırılıp ardından hemen buzlu suya alınarak renk ve diriliklerinin korunması işlemi.',
+  'al dente': 'Al Dente: Makarnanın veya sebzelerin dişe dokunacak sertlikte (çok yumuşatılmadan) pişirilme derecesi.',
+  'karamelize': 'Karamelize: Yiyeceklerin (örneğin soğanın) içindeki şekerlerin ısı etkisiyle kahverengiye dönerek tatlımsı bir lezzet kazanması.',
+  'meyane': 'Meyane (Roux): Eşit miktarda un ve yağın (genellikle tereyağı) kavrularak sosları koyulaştırmak için hazırlanan karışım.',
+};
